@@ -13,7 +13,7 @@
   'use strict';
 
   const Arrange = typeof module !== 'undefined' && module.exports
-    ? require('../arrange/arrange.js')
+    ? require('../../arrange/arrange.js')
     : root.Arrange;
 
   const SIZE_SCALE = { S: 0.92, M: 1.0, L: 1.08, XL: 1.16 };

@@ -98,3 +98,18 @@ test('the CLI answers on stdout and signals invalid input with exit 1', () => {
   assert.equal(bad.status, 1);
   assert.equal(JSON.parse(bad.stdout.toString()).status, 'invalid');
 });
+
+test('a single item solves at once', () => {
+  const t = Date.now();
+  const res = Arrange.solve({ protocol: 'arrange/1', strip: { width: 10 }, items: [{ polygon: [[0, 0], [4, 0], [4, 4]] }] });
+  assert.equal(res.status, 'ok');
+  assert.ok(Date.now() - t < 1000);
+});
+
+test('evaluate treats maxLength as the end of the strip', () => {
+  const req = { protocol: 'arrange/1', task: 'evaluate', strip: { width: 10, gap: 1, maxLength: 12 }, items: [{ polygon: [[0, 0], [4, 0], [4, 4], [0, 4]], quantity: 2 }] };
+  assert.equal(Arrange.run({ ...req, placements: [{ item: 0, x: 1, y: 1 }, { item: 1, x: 6, y: 1 }] }).status, 'ok');
+  const long = Arrange.run({ ...req, placements: [{ item: 0, x: 1, y: 1 }, { item: 1, x: 9, y: 1 }] });
+  assert.equal(long.status, 'rejected');
+  assert.equal(long.check.inBounds, false);
+});

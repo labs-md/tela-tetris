@@ -1,12 +1,13 @@
 {
   "name": "arrange",
   "version": "0.1.0",
-  "description": "Raster engine for laying out irregular shapes on a strip (nesting / strip packing). TelaTetris is the demo.",
+  "description": "Raster engine for laying out irregular shapes on a strip (nesting / strip packing), with a JSON protocol for connectors.",
   "main": "arrange/arrange.js",
-  "license": "UNLICENSED",
+  "bin": { "arrange": "arrange/cli.js" },
+  "license": "MIT",
   "private": true,
   "scripts": {
     "test": "node --test test/*.test.js",
-    "example": "node examples/sheet-metal.js"
+    "example": "node connectors/sheet-metal/sheet-metal.js"
   }
 }

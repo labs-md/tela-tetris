@@ -1,78 +1,59 @@
-# Arrange
+# Arrange engine
 
-Lays out irregular shapes on a strip of fixed width and open length, using as little length as it can. Fabric rolls, steel coils, glass or wood panels and paper all fit this shape of problem. One file, no dependencies. It runs in the browser (`window.Arrange`) and in Node (`require('./arrange/arrange.js')`).
+`arrange.js` has two layers:
+
+- the **protocol layer** (`run`, `solve`, `evaluate`, `session`, `checkRequest`), which is what connectors use. It takes JSON in the connector's units. Spec: [PROTOCOL.md](PROTOCOL.md).
+- the **core** (`createProblem`, `Board`, geometry helpers), which works in grid cells. The protocol layer is built on it. Interactive connectors reach it through `session.problem` when they need live checks, like the game does while you drag a piece.
+
+If you're writing a connector, start with [PROTOCOL.md](PROTOCOL.md). This page covers the core.
+
+## Core API
 
 ```js
 const problem = Arrange.createProblem({
   width: 200,                  // strip width, in cells
-  gap: 1,                      // min distance between items and from edges
+  gap: 1,                      // min distance between items and from edges, in cells
   items: [
     { polygon: [[0, 0], [32, 0], [32, 8], [8, 8], [8, 24], [0, 24]],
       rotations: [0, 90, 180, 270], quantity: 6, data: { name: 'L bracket' } },
-    { polygon: [[0, 0], [22, 0], [0, 22]], rotations: [0, 90, 180, 270], quantity: 8 },
   ],
-  blocked: [[[64, 72], [80, 72], [86, 86], [62, 90]]],   // a defect no item may cover
+  blocked: [[[64, 72], [80, 72], [86, 86], [62, 90]]],
 });
-
 const best = problem.pack({ timeMs: 2000 });   // { placements, length, failed, iterations }
-problem.validate(best.placements).ok;           // true
-problem.metrics(best.placements).utilization;   // item area / strip area used
 ```
 
-## The model
-
-Everything is a grid of square cells. The engine doesn't know what a cell measures. You pick a cell size, convert your outlines to cells (`Arrange.scalePolygon(poly, 1 / mmPerCell)`) and convert results back. Smaller cells give tighter layouts and slower runs, since the cost of one pass grows with `width × length` per item. The fabric demo uses 1 cm cells, the metal example 5 mm.
-
-The strip's length runs along x and its width along y, with y pointing down. A placement is `{ id, rot, x, y }`: the item id, its rotation in degrees, and the top-left cell of its bounding box.
-
-Two rules decide whether a placement is legal. Every method (interactive boards, the shelf baseline, the algorithm, the validator) uses the same two:
-
-- an item's body, meaning every cell its outline touches, may not overlap another body or a blocked cell;
-- the body grown by `gap` cells must stay on the strip and may not touch another body or a blocked cell.
-
-So items end up at least `gap` cells apart, and `gap` cells away from the edges and from blocked regions.
-
-## Items
-
-`items` takes specs:
-
-| Field | Default | Meaning |
-|---|---|---|
-| `polygon` | required | Outline in cells. Any position: the engine moves it to (0, 0). |
-| `rotations` | `[0]` | Allowed rotations in degrees, clockwise on screen. Multiples of 90 are exact; other angles work but rasterize with rounding. Fabric with a grain line uses `[0, 180]`. |
-| `quantity` | `1` | Copies. They share rasters and get consecutive ids. |
-| `data` | `undefined` | Anything you want back on the item (name, color, SKU). The engine never reads it. |
-
-`problem.items[id]` gives `{ id, polygon, w, h, area, rotations, variants, data }`. Each variant holds one rotation's outline (`poly`), raster (`body`) and grown raster (`tmpl`). Use `Arrange.variantOf(item, rot)` to get one, for example to draw it.
-
-## Methods
-
-All lengths are in cells and optional. They default to a bound that is always long enough (1.3 × the shelf layout plus the largest item).
+Core placements are `{ id, rot, x, y }` in cells, where `id` is the item index and `(x, y)` is the top-left cell of the rotated bounding box. The protocol layer renames them to `{ item, rotation, x, y }` and scales them to units.
 
 | Method | Returns |
 |---|---|
-| `pack({ seed, iterations = 200, timeMs, length })` | Best layout found within the iteration or time budget. |
-| `search({ seed, length })` | A stepper: call `step()` as often as you have time, read `best`, `initial`, `iterations`, `order`. Use this in a UI so the search runs between frames. |
-| `greedy(order?, length?)` | One placement pass in the given item order (default: largest first). |
-| `shelf(ids?, start = 0)` | Baseline: bounding boxes in columns, longest first, no nesting. It's how people often lay out by hand, so it's the number to beat. `start` shifts the first column. |
-| `board(length)` | A mutable `Board` with the blocked cells painted in, for interactive placement: `fits`, `place`, `remove`, `ownerAt`. |
-| `validate(placements, length?)` | `{ inBounds, noOverlap, rotations, complete, ok }`, checked from scratch on a fresh board. |
-| `metrics(placements)` | `{ length, area, used, utilization, waste }`. `used` leaves blocked cells out. |
+| `pack({ seed, iterations = 200, timeMs, length })` | Best layout within the budget. |
+| `search({ seed, length })` | A stepper: `step()`, `best`, `initial`, `iterations`, `order`. |
+| `greedy(order?, length?)` | One pass in the given order (default: largest first). |
+| `shelf(ids?, start = 0)` | The baseline. Bounding boxes in columns, longest first. `start` shifts the first column, which the game uses to fill in after the player's cut line. |
+| `board(length)` | A mutable `Board` with blocked cells painted in: `fits(item, rot, x, y, ignoreId?)`, `fitsVariant(v, x, y)`, `place`, `remove`, `ownerAt(x, y)` (item id, -1 when free, -2 when blocked). |
+| `validate(placements, length?)` | `{ inBounds, noOverlap, rotations, complete, ok }`. |
+| `metrics(placements)` | `{ length, area, used, utilization, waste }`. |
 | `layoutLength(placements)` | Last occupied column + 1. |
+| `defaultLength()` | The strip length used when none is given: 1.3 × the shelf layout plus the largest item. |
 
-A result with `failed > 0` means some items didn't fit in `length`. Pass a longer one.
+`problem.items[id]` is `{ id, polygon, w, h, area, rotations, variants, data }`. Each variant is one rotation: `poly` (the outline, moved to start at 0,0), `body` and `tmpl` (rasters), `w`/`h`. `Arrange.variantOf(item, rot)` picks one, for example to draw it.
 
-## The algorithm
+Geometry helpers: `polygonArea`, `normalizePolygon`, `scalePolygon`, `rotatePolygon` (clockwise with y down, exact for multiples of 90°).
 
-Each greedy pass follows Meng et al., *Sci. Rep.* 15:12320 (2025), doi:10.1038/s41598-025-97202-0. For each item, in order, it scores every free position with normalized cross-correlation between the inverted strip and the item's grown raster, in every allowed rotation. It searches only a window near the left that widens as needed, so the layout grows from left to right. Before scoring, it fills free pockets too small to hold the item. Integral images keep the scoring at a handful of additions per position.
+## Inside a greedy pass
 
-The paper places items once, largest first. `search` and `pack` add a random order search on top: swap or move one item, run a pass, keep the new order if the layout isn't longer. On the demo's 4-shirt order (24 pieces, 150 cm roll), 3.5 s of search took the single pass from 333 cm to 285 cm. Shelves need 360 cm.
+For each item in order, `nccGreedy`:
 
-`../reference/ncc_packing.py` is the paper's method in Python, with comments pointing to its equations.
+1. Builds the inverted strip: 1 for a free cell, 0 for a body or blocked cell, with a 1-cell border of 0s.
+2. Fills free regions smaller than the item's template. They can never take it, and leaving them in would reward positions next to useless gaps. This happens per item, since a hole too small for a sleeve may still fit a pocket.
+3. Builds an integral image and row prefix sums of the inverted strip, so the free-cell count of any rectangle or template row costs O(1).
+4. For every rotation and every position inside the search window, keeps the position only if every template cell is free (the overlap test, Eq. 9 in the paper). It then scores the position with normalized cross-correlation between the template and the free space in its bounding box plus a 1-cell margin (Eq. 6, simplified for binary images). Ties go to the leftmost, then topmost, position.
+5. The window starts at 1.5 × the item's largest side, or at the current layout end minus that side once items are down (Eqs. 8 and 12). It widens by one item side until something fits (Eq. 13).
 
-## Limits
+The template is the body grown by `gap`. A cell joins the template when its nearest edge is closer than `gap` to a body cell, so no two bodies end up closer than `gap`, diagonals included. For a 1-cell gap this is exactly the paper's disk (Eq. 1). For larger gaps the paper's disk would let corners get closer, so the engine doesn't use it.
 
-- One open-ended strip. There is no multi-sheet bin packing with fixed-size sheets yet.
-- No mirroring. Add a mirrored copy of the polygon as its own spec if flipping is allowed.
-- Holes inside a polygon are filled, so nothing nests inside a part's cut-out.
-- The objective is strip length (then fewest failed items). Other objectives would need a new comparison in `search`.
+`search` wraps the pass: start from largest-first, mutate the order (swap two items or move one), keep the mutation if the layout is no longer, prefer fewer failed items over a shorter length. Runs are deterministic for a given seed.
+
+Cost per pass is about `items × rotations × width × window × template rows`. The garment order (24 pieces, 2 rotations, 150 × ~400 cells) takes about 35 ms. Halving `cellSize` roughly multiplies that by 8: four times the cells, and templates with twice as many rows.
+
+The equation numbers refer to Meng et al., *Scientific Reports* 15, 12320 (2025), doi:[10.1038/s41598-025-97202-0](https://doi.org/10.1038/s41598-025-97202-0). The full citation is in the [root README](../README.md#citation). `../reference/ncc_packing.py` is the paper's method in Python, with comments pointing to its equations.

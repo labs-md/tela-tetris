@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Arrange = require('../arrange/arrange.js');
-const Garments = require('../demo/garments.js');
+const Garments = require('../connectors/telatetris/garments.js');
 
 const rect = (w, h) => [[0, 0], [w, 0], [w, h], [0, h]];
 const tri = (s) => [[0, 0], [s, 0], [0, s]];
@@ -105,4 +105,20 @@ test('garment connector: grain kept, layout beats shelves', () => {
   assert.equal(best.length, 81);
   assert.ok(best.length < P.layoutLength(P.shelf()));
   assert.equal(P.validate(best.placements).ok, true);
+});
+
+test('the gap holds on diagonals too, for any gap size', () => {
+  const dot = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  for (let g = 0; g <= 4; g++) {
+    const P = Arrange.createProblem({ width: 30, gap: g, items: [{ polygon: dot, quantity: 2 }] });
+    const b = P.board(30);
+    b.place(P.items[0], 0, 15, 15);
+    for (let y = g; y < 30 - g; y++) {
+      for (let x = g; x < 30 - g; x++) {
+        if (x === 15 && y === 15) continue;
+        const dx = Math.max(0, Math.abs(x - 15) - 1), dy = Math.max(0, Math.abs(y - 15) - 1);
+        assert.equal(b.fits(P.items[1], 0, x, y), Math.hypot(dx, dy) >= g, `gap ${g} at ${x},${y}`);
+      }
+    }
+  }
 });

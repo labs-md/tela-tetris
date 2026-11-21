@@ -19,8 +19,10 @@
  *     and may not touch another body or a blocked cell, so items stay `gap`
  *     cells apart and `gap` cells from the edges and from blocked regions.
  *
- * The placement algorithm follows Meng et al., Sci. Rep. 15:12320 (2025),
- * doi:10.1038/s41598-025-97202-0: normalized cross-correlation (NCC) between
+ * The placement algorithm follows Meng, L. et al., "Optimizing 2D irregular
+ * packing via image processing and computational intelligence", Scientific
+ * Reports 15, 12320 (2025), doi:10.1038/s41598-025-97202-0 (full citation in
+ * the root README): normalized cross-correlation (NCC) between
  * the inverted strip and each item template, a left-hand search window that
  * grows the layout from left to right, and filling of holes too small for the
  * item. On top of the paper's single greedy pass, `search` tries other item
@@ -109,20 +111,24 @@
     return { data, w: W, h: H };
   }
 
-  // Grow by g cells (Eq. 1 of the paper: dilation with a disk). The radius
-  // includes the diagonal neighbours so corner-touching cells keep the gap.
+  // Grow by g cells (Eq. 1 of the paper: dilation with a disk). A cell joins
+  // the template when its nearest edge is closer than g to a body cell, so no
+  // two bodies end up closer than g, diagonals included. For g = 1 this is
+  // the paper's disk; for larger g the paper's disk lets corners get closer.
   function dilate(mask, g) {
     const w = mask.w + 2 * g, h = mask.h + 2 * g;
     const data = new Uint8Array(w * h);
-    const r2 = g * g + g;
+    const reach = [];
+    for (let di = -g; di <= g; di++) {
+      for (let dj = -g; dj <= g; dj++) {
+        const a = Math.max(0, Math.abs(di) - 1), b = Math.max(0, Math.abs(dj) - 1);
+        if (a * a + b * b < g * g || (di === 0 && dj === 0)) reach.push(di, dj);
+      }
+    }
     for (let i = 0; i < mask.h; i++) {
       for (let j = 0; j < mask.w; j++) {
         if (!mask.data[i * mask.w + j]) continue;
-        for (let di = -g; di <= g; di++) {
-          for (let dj = -g; dj <= g; dj++) {
-            if (di * di + dj * dj <= r2) data[(i + g + di) * w + (j + g + dj)] = 1;
-          }
-        }
+        for (let k = 0; k < reach.length; k += 2) data[(i + g + reach[k]) * w + (j + g + reach[k + 1])] = 1;
       }
     }
     return { data, w, h };
@@ -637,6 +643,7 @@
     if (req.task !== undefined && req.task !== 'solve' && req.task !== 'evaluate') errs.push('task must be "solve" or "evaluate"');
     const cs = req.cellSize === undefined ? 1 : req.cellSize;
     if (!isNum(cs) || cs <= 0) errs.push('cellSize must be a positive number');
+    if (req.units !== undefined && typeof req.units !== 'string') errs.push('units must be a string');
     const s = req.strip;
     if (!s || typeof s !== 'object') {
       errs.push('strip is required');
@@ -666,8 +673,11 @@
     return errs;
   }
 
+  // Echo the connector's unit label, if it sent one.
+  const unitsOf = (req) => (req && typeof req.units === 'string' ? { units: req.units } : {});
+
   function invalid(req, errors) {
-    return { protocol: PROTOCOL, status: 'invalid', units: req && req.units, errors };
+    return { protocol: PROTOCOL, status: 'invalid', ...unitsOf(req), errors };
   }
 
   /**
@@ -722,14 +732,14 @@
 
     function report(placements, extra) {
       const m = problem.metrics(placements);
-      const check = problem.validate(placements);
+      const check = problem.validate(placements, searchLen);   // maxLength is a real edge
       const placed = new Set(placements.map((p) => p.id));
       const unplaced = refs.map((_, i) => i).filter((i) => !placed.has(i));
       const duplicates = placed.size !== placements.length;
       const status = !(check.inBounds && check.noOverlap && check.rotations) || duplicates ? 'rejected'
         : unplaced.length ? 'incomplete' : 'ok';
       return {
-        protocol: PROTOCOL, status, units: req.units,
+        protocol: PROTOCOL, status, ...unitsOf(req),
         length: round6(m.length * cs),
         utilization: round6(m.utilization),
         placements: placements.map(out),
@@ -773,7 +783,9 @@
     return {
       problem, cellSize: cs, step, progress,
       /** Has the search used up its iteration or time budget? */
-      get done() { return !!search && (search.iterations >= opts.iterations || ms >= opts.timeMs); },
+      get done() {
+        return !!search && (search.iterations >= opts.iterations || ms >= opts.timeMs || problem.items.length < 2);
+      },
       result() {
         if (!search) step(0);
         return report(search.best.placements, { ...baseline(), ...stats() });
