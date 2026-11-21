@@ -20,6 +20,24 @@
         ],
         "createdAt": "2026-11-21T20:13:45.900Z",
         "reason": "Codex: DESIGN.md declares Press Start 2P; the detector truncated this existing font name in the setup page shorthand."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "connectors/telatetris/index.html"
+        ],
+        "createdAt": "2026-11-21T21:08:58.032Z",
+        "reason": "Codex: detector reports the existing 4px yellow header divider, not a side accent on a card; DESIGN.md records the approved arcade header and bevels."
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(0.2, 1.5, 0.4, 1)",
+        "files": [
+          "connectors/telatetris/index.html"
+        ],
+        "createdAt": "2026-11-21T21:08:58.621Z",
+        "reason": "Codex: existing card-in and start-slam motions belong to the retro arcade and fighting-game presentation documented in PRODUCT.md and DESIGN.md; these declarations predate the handoff commit."
       }
     ]
   }
