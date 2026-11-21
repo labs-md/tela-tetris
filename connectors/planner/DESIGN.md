@@ -200,7 +200,7 @@ La compra usa Inter de 42px, peso 500, interlínea 1.15 y espaciado -0.035em; en
 
 La cabecera, el contenido y el pie comparten un ancho máximo de 1200px. El margen interior lateral es 40px en escritorio, 28px hasta 1150px y 20px hasta 760px. El ritmo combina espacios cortos para controles con separaciones de sección de 20px y 24px.
 
-El contenido empieza con una ruta de cuatro columnas iguales, seguida del título de la tarea actual y un panel blanco. Cada paso usa un interior de 32px; un pie separado por una regla conserva Atrás, el contador y la siguiente acción en la misma posición dentro del panel. La selección presenta tres tarjetas en una fila. Las cantidades S, M, L y XL ocupan cuatro columnas con un ancho máximo de 760px. La revisión combina el pedido flexible con condiciones en una columna de 300px y una separación de 48px. El resultado combina un plano flexible con la compra de 280px, separados por 22px.
+El contenido empieza con una ruta de cuatro columnas iguales, seguida del título de la tarea actual y un panel blanco. Cada paso usa un interior de 32px; un pie separado por una regla conserva Atrás, el contador y la siguiente acción en la misma posición dentro del panel. La selección presenta tres tarjetas independientes en una fila. Cada tipo seleccionado ocupa un grupo de tallas dentro del mismo paso, con su nombre, descripción, material y patrones opcionales. Los grupos se apilan con separación de 28px y una regla fina; sus cantidades S, M, L y XL ocupan cuatro columnas a todo el ancho disponible. La revisión combina el pedido flexible con condiciones en una columna de 300px y una separación de 48px. El resultado combina un plano flexible con la compra de 280px, separados por 22px.
 
 Hasta 760px, las prendas se apilan como tarjetas horizontales, las tallas forman dos columnas y la revisión pasa a una. Los pasos conservan cuatro columnas, con el número sobre la etiqueta. El interior del asistente pasa a 22px y el contador ocupa una fila del pie antes de los botones. El resultado une plano y compra dentro del panel exterior, sin bordes duplicados. La cabecera conserva marca y enlace LABS y oculta su nota descriptiva.
 
@@ -222,7 +222,7 @@ Los paneles repiten esquinas de 10px y los botones de 6px. Estados y marco de ro
 
 ### Buttons
 
-La acción principal es amarilla, con flecha SVG, altura mínima de 46px y padding de 12px 14px. En escritorio tiene ancho mínimo de 180px y se alinea al final del pie; en móvil ocupa el espacio disponible junto a Atrás. El hover usa amarillo algo más oscuro y la pulsación marca el borde en carbón. Las acciones secundarias son blancas, con borde y altura mínima de 44px; se usan para volver, agregar una prenda y empezar otro pedido. Las acciones de texto usan gris y se oscurecen al pasar el puntero. La descarga es un botón blanco con borde y altura mínima de 42px; su hover usa el fondo gris elevado.
+La acción principal es amarilla, con flecha SVG, altura mínima de 46px y padding de 12px 14px. En escritorio tiene ancho mínimo de 180px y se alinea al final del pie; en móvil ocupa el espacio disponible junto a Atrás. El hover usa amarillo algo más oscuro y la pulsación marca el borde en carbón. Las acciones secundarias son blancas, con borde y altura mínima de 44px; se usan para volver, cambiar las prendas seleccionadas y empezar otro pedido. Las acciones de texto usan gris y se oscurecen al pasar el puntero. La descarga es un botón blanco con borde y altura mínima de 42px; su hover usa el fondo gris elevado.
 Todos los controles interactivos comparten transiciones de color, fondo y borde de 150ms. El foco visible es un contorno oliva de 2px separado 4px. Los botones deshabilitados usan opacidad 0.45. La preferencia de movimiento reducido elimina transiciones y lleva el acomodo directamente a su posición final.
 
 ### Cards / Containers
@@ -231,20 +231,26 @@ Los paneles comparten blanco, regla fina y radio de panel. El panel del asistent
 
 ### Inputs / Fields
 
-La cantidad agrupa botón de quitar, campo centrado y botón de agregar en una sola banda de 46px de alto. El campo blanco tiene bordes superior e inferior y cifras tabulares. Los extremos usan el fondo de página y borde de control; el hover habilitado se vuelve amarillo. Los nombres accesibles incluyen prenda y talla. Los errores aparecen antes del pie de acciones en naranja de lectura. La siguiente acción permanece deshabilitada para cantidades vacías o inválidas.
+La cantidad agrupa botón de quitar, campo centrado y botón de agregar en una sola banda de 46px de alto. El campo blanco tiene bordes superior e inferior y cifras tabulares. Los extremos usan el fondo de página y borde de control; el hover habilitado se vuelve amarillo. Los nombres accesibles incluyen prenda y talla. Los campos inválidos marcan `aria-invalid="true"`, borde naranja y fondo pálido; el mensaje aparece antes del pie de acciones en naranja de lectura. Cada edición valida todos los campos de todos los grupos como una sola operación y solo guarda las cantidades cuando el conjunto es válido. Un campo válido no puede ocultar un borrador inválido de otro grupo. El máximo de 12 prendas es global y cada tipo seleccionado requiere al menos una unidad; Revisar pedido permanece deshabilitado mientras falte alguna o haya cantidades vacías, fraccionarias, negativas o fuera del límite.
 
 ### Navigation
 
 La cabecera blanca contiene marca Neuton, icono geométrico, nota breve y enlace LABS a la derecha. Su altura es 76px en escritorio y 68px en móvil.
 
-La ruta usa cuatro botones numerados con regla inferior. El paso activo combina círculo amarillo, texto carbón y regla oliva; los completados usan círculo gris suave. Los pasos futuros se mantienen legibles y deshabilitados. El estado activo usa `aria-current="step"`. Los pasos alcanzados permiten volver y conservar cantidades; cada transición lleva el foco al título de la tarea. El pie muestra Atrás, contador y Elegir tallas o Revisar pedido; la revisión muestra Calcular mi tela y el resultado ofrece Editar pedido y Nuevo pedido.
+La ruta usa cuatro botones numerados con regla inferior. El paso activo combina círculo amarillo, texto carbón y regla oliva; los completados usan círculo gris suave. Los pasos futuros se mantienen legibles y deshabilitados. El estado activo usa `aria-current="step"`. Los pasos alcanzados permiten volver y conservar cantidades; cada transición lleva el foco al título de la tarea. El primer paso se llama Prendas. El pie muestra Atrás, contador y Elegir tallas o Revisar pedido; la revisión muestra Calcular mi tela y el resultado ofrece Editar pedido y Nuevo pedido.
 ### Garment selection
 
-Las opciones muestran siluetas SVG, nombre y descripción. En escritorio son tarjetas verticales, con 28px de padding y altura mínima de 220px. En móvil son horizontales, con 20px de padding y altura mínima de 115px. La seleccionada usa fondo pálido y borde oliva con `aria-pressed`. La selección no depende de un icono tipográfico.
+Las opciones Playeras, Pantalones y Chumpas muestran siluetas SVG, nombre, descripción y una casilla visual SVG. Cada botón alterna su propio `aria-pressed` de forma independiente dentro de un grupo que anuncia la selección múltiple. La casilla seleccionada contiene una marca de verificación, relleno amarillo y trazo carbón, junto al fondo pálido y borde oliva de la tarjeta. En escritorio son tarjetas verticales, con 28px de padding y altura mínima de 220px. En móvil son horizontales, con 20px de padding, espacio reservado a la casilla y altura mínima de 115px. El foco regresa a la tarjeta activada después de actualizar la selección.
+
+El pedido empieza sin selección y Elegir tallas requiere al menos un tipo. Desmarcar uno borra solo sus cantidades y conserva las de los demás. La ayuda muestra cuántos tipos hay seleccionados y explica esta consecuencia. Chumpa y Chumpas son los nombres públicos; `chaqueta` sigue siendo la clave interna de datos, sin aparecer como nombre de producto.
+
+### Garment sizing groups
+
+El paso Tallas reúne todos los tipos seleccionados. Cada uno usa un `fieldset` con su nombre plural en `legend`, seguido de descripción y material. Los controles S, M, L y XL tienen identificadores únicos `quantity-{tipo}-{talla}` y etiquetas asociadas; sus nombres accesibles incluyen prenda y talla. Los grupos usan cuatro columnas en escritorio y dos en móvil. Cada grupo tiene su propio desplegable Ver patrones de referencia, talla M, con las piezas de ese tipo. Cambiar selección vuelve al primer paso y conserva las cantidades de los tipos que siguen seleccionados.
 
 ### Order review
 
-Las filas agrupan prenda, tallas, total y Editar, con divisiones finas. Agregar otra prenda vuelve a la selección sin borrar el pedido. Las condiciones quedan en un panel suave contiguo en escritorio y debajo del pedido en móvil. Los cambios de cantidades borran el resultado anterior; salir de una búsqueda activa la cancela. Nuevo pedido restablece la ruta y las cantidades.
+Las filas agrupan cada tipo con cantidades, tallas, total y Editar, con divisiones finas. Editar vuelve al paso de tallas y enfoca el primer campo del grupo correspondiente. Cambiar prendas vuelve a la selección y conserva el pedido hasta que se desmarque un tipo. Las condiciones quedan en un panel suave contiguo en escritorio y debajo del pedido en móvil. Los cambios de cantidades borran el resultado anterior; salir de una búsqueda activa la cancela. Nuevo pedido restablece la ruta y las cantidades.
 ### Status
 
 El estado es una etiqueta rectangular compacta. Pendiente usa gris; buscando y terminado usan selección suave y texto carbón. El mensaje describe el cálculo y se acompaña de un anuncio accesible del resultado.
@@ -264,6 +270,9 @@ El canvas presenta el rollo blanco, cuadrícula fina, cotas y piezas reales. Las
 - Do dar foco visible y respetar la preferencia de movimiento reducido.
 - Do mantener la ruta numerada, una tarea por paso y las acciones en el pie del panel.
 - Do conservar las cantidades al volver y deshabilitar el avance si el pedido no es válido.
+- Do mantener visibles todos los grupos seleccionados en Tallas, con campos únicos y patrones propios.
+- Do validar el pedido completo, con al menos una unidad por tipo seleccionado y un máximo global de 12 prendas.
+- Do mostrar casillas marcadas y `aria-pressed` independientes para la selección múltiple.
 
 ### Don't:
 

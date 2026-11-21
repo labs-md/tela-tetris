@@ -188,6 +188,12 @@ The beveled canvas frame contains the cloth grid, real garment outlines, ruler, 
 
 A full-screen title card on warm black with the Labs dot grid: the pixel shirt and TelaTetris wordmark, a canvas T-shirt that floats, turns around its vertical axis (showing the back panel when it faces away, darker as it turns edge-on) and casts a floor shadow, pixel twinkles, the title "Empieza a ahorrar con TelaTetris" slamming in with an orange offset shadow, a line about yards and quetzales, and a throbbing yellow "▶ Empezar" button. The shirt is drawn at quarter resolution and scaled up without smoothing, so it reads as pixel art. Space or Enter also starts.
 
+### Story
+
+Between the start screen and the intro, a full-screen cutscene in the style of a top-down adventure game, original art only. Scenes are drawn at 192×108 and scaled up without smoothing, in the Labs palette plus a skin tone and a brown for wood: Chepe's workshop (an order card with shirt icons pops up as a letter flies in), the town map (a path from the orange-roofed TALLER to the yellow-roofed TELAS shop, round yellow trees, a shirt "inventory" in the corner, Chepe walking), and the fabric shop (shelves of rolls, a 150 cm roll on the counter, Doña Rosa behind it). When she asks how many yards, Chepe shakes and question marks in yellow, orange and white bob over his head.
+
+Dialogue sits in a classic RPG box: black, white border, yellow outer ring, a yellow name tag for the speaker (none for the narrator, whose text is gray), pixel text typed at about 30 characters per second with soft blips, and a blinking ▼ when the line is complete. The player advances every line. A "Saltar historia" tool button, Esc or Start skips it.
+
 ### Intro
 
 The intro plays on load (skip with `?intro=0`) and again from the "¿Cómo?" button before a round starts. It runs on a full-screen overlay above the real interface and dims everything but the part in focus, outlined with a moving dashed yellow border:

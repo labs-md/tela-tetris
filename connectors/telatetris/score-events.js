@@ -6,6 +6,12 @@
   const CONNECTION = 'https://stg-capture.lid.gt/ingest/v2/workspaces/01a1ff84-784e-75bc-9fa9-6284885c72bc/campaigns/01a1ff84-cba6-7425-a611-df6983cbbdf7/connections/01a1ff88-2df5-74dc-857e-fbb99d724099';
   const SCHEMA = '01a1ff86-6346-7691-95f6-ca500215545f';
   const PREFIX = 'telatetris-score-v1:';
+  const TOKEN_KEY = 'telatetris-instabloom-session-token';
+
+  function sessionToken() {
+    try { return root.sessionStorage.getItem(TOKEN_KEY) || INGESTION_TOKEN; }
+    catch { return INGESTION_TOKEN; }
+  }
 
   function uuidv7() {
     const bytes = root.crypto.getRandomValues(new Uint8Array(16));
@@ -73,7 +79,7 @@
     return outcome.status;
   }
 
-  function create({ store, sourceStorage, fetch, token = () => INGESTION_TOKEN, uuid = uuidv7, now = Date.now, random = Math.random }) {
+  function create({ store, sourceStorage, fetch, token = sessionToken, uuid = uuidv7, now = Date.now, random = Math.random }) {
     let flushing = false;
 
     async function enqueue(source) {
@@ -175,7 +181,7 @@
 
     async function validate() {
       const secret = token().trim();
-      if (!secret) throw new Error('Set INGESTION_TOKEN in score-events.js first');
+      if (!secret) throw new Error('Open connect.html and enter an ingestion token first');
       const time = new Date(now()).toISOString(), batch_id = uuid();
       const body = JSON.stringify({ contract_version: 2, batch_id, queue_id: uuid(), first_sequence: '1',
         events: [{ event_id: uuid(), sequence: '1', schema_version_id: SCHEMA, event_time: time, captured_at: time, data: { score_cm: '120' } }] });
@@ -194,7 +200,7 @@
     return { record, flush, validate, status: () => store.read() };
   }
 
-  const api = { create, indexedStore, initialState, uuidv7, receiptStatus, retryDelay, PREFIX, CONNECTION, SCHEMA };
+  const api = { create, indexedStore, initialState, uuidv7, receiptStatus, retryDelay, sessionToken, TOKEN_KEY, PREFIX, CONNECTION, SCHEMA };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else {
     root.TelaTetrisScoreClient = api;

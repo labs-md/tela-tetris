@@ -2,6 +2,25 @@
   "detector": {
     "ignoreRules": [],
     "ignoreFiles": [],
-    "ignoreValues": []
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "plex mono",
+        "files": [
+          "connectors/telatetris/connect.html"
+        ],
+        "createdAt": "2026-11-21T20:13:45.400Z",
+        "reason": "Codex: DESIGN.md declares IBM Plex Mono; the detector truncated this existing font name in the setup page shorthand."
+      },
+      {
+        "rule": "design-system-font",
+        "value": "start 2p",
+        "files": [
+          "connectors/telatetris/connect.html"
+        ],
+        "createdAt": "2026-11-21T20:13:45.900Z",
+        "reason": "Codex: DESIGN.md declares Press Start 2P; the detector truncated this existing font name in the setup page shorthand."
+      }
+    ]
   }
 }

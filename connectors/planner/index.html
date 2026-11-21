@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Planifica un pedido de prendas, revisa su distribución y calcula las yardas de tela que necesitas comprar.">
-<title>TelaTetris · Planificador de tela</title>
+<meta name="description" content="Planifica tela o madera, revisa la distribución de las piezas y calcula cuánto material comprar.">
+<title>Arrange · Planificador de tela</title>
 <link rel="preload" href="fonts/neuton-regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/inter-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="planner.css">
@@ -12,73 +12,75 @@
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="index.html" aria-label="TelaTetris, inicio"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5Z"/><path d="M5 5h11v11H5Z" fill="currentColor"/><path d="M16 16h11v11H16Z" fill="#e8fb5b"/></svg><span>TelaTetris</span></a>
+    <a class="brand" href="index.html" aria-label="Arrange, inicio"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 5h22v22H5Z"/><path d="M5 5h11v11H5Z" fill="currentColor"/><path d="M16 16h11v11H16Z" fill="#e8fb5b"/></svg><span>Arrange</span></a>
     <span class="header-note">Planificación de materiales</span>
     <a class="labs-link" href="https://labs.gt" target="_blank" rel="noopener">Por LABS <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10"/></svg></a>
   </div>
 </header>
 <main>
+  <div class="material-choice"><span>Material del pedido</span><ui-toggle-group id="materialMode" value="fabric" deselectable="false" aria-label="Material del pedido"><ui-toggle value="fabric"><button type="button">Tela</button></ui-toggle><ui-toggle value="wood"><button type="button">Madera</button></ui-toggle></ui-toggle-group></div>
   <nav class="wizard-progress" aria-label="Pasos del planificador">
     <ol>
-      <li><button type="button" data-step="1" aria-current="step"><span class="step-number">1</span><span>Prenda</span></button></li>
-      <li><button type="button" data-step="2" disabled><span class="step-number">2</span><span>Tallas</span></button></li>
-      <li><button type="button" data-step="3" disabled><span class="step-number">3</span><span>Revisión</span></button></li>
-      <li><button type="button" data-step="4" disabled><span class="step-number">4</span><span>Tu tela</span></button></li>
+      <li><ui-button><button type="button" data-step="1" aria-current="step"><span class="step-number">1</span><span>Prendas</span></button></ui-button></li>
+      <li><ui-button><button type="button" data-step="2" disabled><span class="step-number">2</span><span>Tallas</span></button></ui-button></li>
+      <li><ui-button><button type="button" data-step="3" disabled><span class="step-number">3</span><span>Revisión</span></button></ui-button></li>
+      <li><ui-button><button type="button" data-step="4" disabled><span class="step-number">4</span><span>Tu tela</span></button></ui-button></li>
     </ol>
   </nav>
   <div class="page-heading">
-    <div><h1 id="stepTitle" tabindex="-1">¿Qué prenda vas a confeccionar?</h1><p id="stepDescription">Elige un modelo para empezar. Después podrás combinar más prendas en tu pedido.</p></div>
-    <span class="width-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8v8m18-8v8M3 12h18M7 9l-4 3 4 3m10-6 4 3-4 3"/></svg>Rollo de <strong>150 cm</strong></span>
+    <div><h1 id="stepTitle" tabindex="-1">¿Qué prendas vas a confeccionar?</h1><p id="stepDescription">Selecciona una o varias prendas. En el siguiente paso definirás las tallas de todas.</p></div>
+    <span id="widthTag" class="width-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8v8m18-8v8M3 12h18M7 9l-4 3 4 3m10-6 4 3-4 3"/></svg>Rollo de <strong>150 cm</strong></span>
   </div>
   <div class="wizard-surface">
     <section id="step-1" class="wizard-step" aria-labelledby="stepTitle">
-      <div id="presets" class="preset-list"></div>
-      <div class="guidance"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><p>Trabajaremos con patrones ilustrativos. El cálculo te orienta sobre la tela necesaria; verifica tus patrones de confección antes de comprar.</p></div>
+      <ui-toggle-group id="presets" class="preset-list" multiple aria-label="Prendas del pedido"></ui-toggle-group><p id="selectionHint" class="selection-hint">Selecciona al menos un tipo de prenda para continuar.</p>
+      <div class="guidance"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg><p id="selectionGuidance">Trabajaremos con patrones ilustrativos. El cálculo te orienta sobre la tela necesaria; verifica tus patrones de confección antes de comprar.</p></div>
     </section>
     <section id="step-2" class="wizard-step" aria-labelledby="stepTitle" hidden>
-      <div class="selection-summary"><div><h2 id="selectedName">Playera</h2><p>Indica cuántas prendas necesitas en cada talla.</p></div><button id="changeGarment" class="text-button" type="button">Cambiar prenda</button></div>
-      <div id="sizes" class="sizes"></div>
-      <p id="quantityHint" class="quantity-note">Puedes combinar tallas S, M, L y XL, hasta un total de 12 prendas por pedido.</p>
-      <details id="patrones" class="pieces-panel"><summary>Ver las piezas de esta prenda</summary><div class="section-title"><p>Patrones de referencia · talla M</p><span id="fabricType">Tejido de punto</span></div><div id="pieceBank" class="piece-bank"></div></details>
+      <section id="stockPanel" class="stock-panel" aria-label="Medidas del tablón de compra" hidden></section>
+      <div class="selection-summary"><div><h2 id="quantitiesHeading">Prendas seleccionadas</h2><p id="quantitiesDescription">Completa las tallas de cada tipo de prenda.</p></div><ui-button><button id="changeGarment" class="text-button" type="button">Cambiar selección</button></ui-button></div>
+      <div id="sizes" class="garment-sizes"></div>
+      <p id="quantityHint" class="quantity-note">Agrega al menos una unidad de cada tipo de prenda seleccionado.</p>
     </section>
     <section id="step-3" class="wizard-step" aria-labelledby="stepTitle" hidden>
       <div class="review-layout">
-        <section class="order-summary"><div class="section-title"><h2>Tu pedido</h2><button id="clear" class="text-button" type="button">Vaciar</button></div><ul id="orderLines"></ul><div class="order-total"><span id="garmentCount"></span><span id="pieceCount"></span></div><button id="addGarment" class="secondary" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v14M3 10h14"/></svg>Agregar otra prenda</button></section>
-        <div class="material-summary"><h2>Condiciones del cálculo</h2><dl><div><dt>Ancho de tela</dt><dd>150 cm</dd></div><div><dt>Separación entre piezas</dt><dd>1 cm</dd></div><div><dt>Dirección del hilo</dt><dd>Se conserva</dd></div><div><dt>Unidad de compra</dt><dd>Yardas lineales</dd></div></dl><p>Redondearemos hacia arriba a ¼ de yarda. Sin márgenes de costura adicionales, encogimiento ni defectos.</p></div>
+        <section class="order-summary"><div class="section-title"><h2>Tu pedido</h2><ui-button><button id="clear" class="text-button" type="button">Vaciar</button></ui-button></div><ul id="orderLines"></ul><div class="order-total"><span id="garmentCount"></span><span id="pieceCount"></span></div><ui-button><button id="addGarment" class="secondary" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v14M3 10h14"/></svg><span id="changeSelectionLabel">Cambiar prendas</span></button></ui-button></section>
+        <div class="material-summary"><h2>Condiciones del cálculo</h2><dl id="conditionRows"><div><dt>Ancho de tela</dt><dd>150 cm</dd></div><div><dt>Separación entre piezas</dt><dd>1 cm</dd></div><div><dt>Dirección del hilo</dt><dd>Se conserva</dd></div><div><dt>Unidad de compra</dt><dd>Yardas lineales</dd></div></dl><p id="conditionsNote">Redondearemos hacia arriba a ¼ de yarda. Sin márgenes de costura adicionales, encogimiento ni defectos.</p></div>
       </div>
     </section>
     <section id="step-4" class="wizard-step result-step" aria-labelledby="stepTitle" hidden>
   <div class="planning-area" id="tendido">
     <section class="layout-panel" aria-labelledby="layoutTitle">
       <div class="stage-heading"><div><h2 id="layoutTitle">Distribución de las piezas</h2><p id="stageDescription">Vista del tendido sobre un rollo de 150 cm de ancho.</p></div><span id="status" class="status">Por calcular</span></div>
-      <div class="roll-scroll"><div id="rollFrame" class="roll-frame"><canvas id="roll" role="img" aria-label="Vista previa sin calcular. Rollo de tela de 150 centímetros de ancho."></canvas><div id="emptyState" class="empty-state"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 12h40v40H12Z M20 12v7m8-7v4m8-4v7m8-7v4M12 28h18v16H12m18-16h22M39 28v24"/></svg><h3>El tendido de tu pedido</h3><p>Calcula la tela para ver cómo se distribuyen las piezas<br>y el largo de material que ocupan.</p></div></div></div>
-      <div class="board-footer"><span id="boardCaption">Medidas en centímetros · 1 cm entre piezas</span><button id="replay" class="text-button" type="button" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7a7 7 0 1 1-1 6M4 2v5h5"/></svg>Repetir acomodo</button></div>
+      <div id="fabricLayout" class="roll-scroll"><div id="rollFrame" class="roll-frame"><canvas id="roll" role="img" aria-label="Vista previa sin calcular. Rollo de tela de 150 centímetros de ancho."></canvas><div id="emptyState" class="empty-state"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 12h40v40H12Z M20 12v7m8-7v4m8-4v7m8-7v4M12 28h18v16H12m18-16h22M39 28v24"/></svg><h3>El tendido de tu pedido</h3><p>Calcula la tela para ver cómo se distribuyen las piezas<br>y el largo de material que ocupan.</p></div></div></div>
+      <div id="woodLayouts" class="wood-layouts" hidden></div>
+      <div class="board-footer"><span id="boardCaption">Medidas en centímetros · 1 cm entre piezas</span><ui-button><button id="replay" class="text-button" type="button" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7a7 7 0 1 1-1 6M4 2v5h5"/></svg>Repetir acomodo</button></ui-button></div>
     </section>
     <aside class="purchase-panel" aria-label="Resumen de compra">
-      <div class="purchase-empty"><h2>Resumen de compra</h2><p class="pending-value">Calculando…</p><p>Estamos buscando un acomodo para tu pedido.</p><dl><div><dt>Ancho del rollo</dt><dd>150 cm</dd></div><div><dt>Unidad de compra</dt><dd>Yardas lineales</dd></div></dl></div>
+      <div class="purchase-empty"><h2>Resumen de compra</h2><p class="pending-value">Calculando…</p><p>Estamos buscando un acomodo para tu pedido.</p><dl id="pendingConditions"><div><dt>Ancho del rollo</dt><dd>150 cm</dd></div><div><dt>Unidad de compra</dt><dd>Yardas lineales</dd></div></dl></div>
       <section id="result" class="result-panel" aria-labelledby="resultHeading" hidden>
-        <div class="purchase"><h2 id="resultHeading">Compra recomendada</h2><p class="purchase-value"><strong id="buyYards">0</strong> <span>yardas</span></p><p>de tela de <b>150 cm de ancho</b></p></div>
-        <div class="result-detail"><div><span>Largo del tendido</span><strong id="layoutLength"></strong></div><div><span>Tela aprovechada</span><strong id="utilization"></strong></div></div>
-        <p class="rounding-note">Redondeado hacia arriba a ¼ de yarda.</p>
-        <button id="download" class="download" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v11m-4-4 4 4 4-4M3 13v5h14v-5"/></svg>Descargar tendido SVG</button>
+        <div class="purchase"><h2 id="resultHeading">Compra recomendada</h2><p class="purchase-value"><strong id="buyYards">0</strong> <span id="purchaseUnit">yardas</span></p><p id="purchaseWidth">de tela de <b>150 cm de ancho</b></p></div>
+        <div class="result-detail"><div><span id="measurementLabel">Largo del tendido</span><strong id="layoutLength"></strong></div><div><span id="utilizationLabel">Tela aprovechada</span><strong id="utilization"></strong></div></div>
+        <p id="roundingNote" class="rounding-note">Redondeado hacia arriba a ¼ de yarda.</p>
+        <ui-button><button id="download" class="download" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v11m-4-4 4 4 4-4M3 13v5h14v-5"/></svg><span id="downloadLabel">Descargar tendido SVG</span></button></ui-button>
       </section>
-      <p class="purchase-note">Estimación con patrones ilustrativos. Revisa tus patrones reales antes de comprar. Sin margen extra por encogimiento o defectos.</p>
+      <p id="purchaseNote" class="purchase-note">Estimación con patrones ilustrativos. Revisa tus patrones reales antes de comprar. Sin margen extra por encogimiento o defectos.</p>
     </aside>
   </div>
     </section>
     <p id="orderError" class="error" role="alert" hidden></p>
     <div class="wizard-actions">
-      <button id="wizardBack" class="secondary" type="button" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5"/></svg><span>Atrás</span></button>
+      <ui-button><button id="wizardBack" class="secondary" type="button" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5"/></svg><span>Atrás</span></button></ui-button>
       <span id="stepCounter" class="step-counter">Paso 1 de 4</span>
-      <button id="wizardNext" class="primary" type="button"><span>Elegir tallas</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button>
-      <button id="arrange" class="primary" type="button" hidden><span>Calcular mi tela</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button>
-      <button id="newOrder" class="secondary" type="button" hidden>Nuevo pedido</button>
+      <ui-button><button id="wizardNext" class="primary" type="button"><span>Elegir tallas</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button></ui-button>
+      <ui-button><button id="arrange" class="primary" type="button" hidden><span>Calcular mi tela</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button></ui-button>
+      <ui-button><button id="newOrder" class="secondary" type="button" hidden>Nuevo pedido</button></ui-button>
     </div>
   </div>
-  <details class="assumptions"><summary>Supuestos y alcance del cálculo</summary><p>Estos presets son patrones ilustrativos, no patrones de confección validados. Las tallas S, M, L y XL usan una escala de referencia; no representan medidas corporales universales. Los pantalones y chaquetas no incluyen forro, cierres ni otros complementos.</p><p>Calculamos sobre un rollo abierto de 150 cm, con 1 cm de separación entre piezas y giros de 0° o 180° para conservar la dirección del hilo. No se incluye encogimiento, márgenes de costura adicionales, defectos ni coincidencia de estampados. La compra cubre los contornos mostrados. Revisa tus patrones reales antes de comprar o cortar.</p><p>El acomodo es el mejor encontrado durante la búsqueda; no garantiza el mínimo posible.</p></details>
+  <details class="assumptions"><summary>Supuestos y alcance del cálculo</summary><div id="assumptionsContent"></div></details>
   <p id="announcement" class="sr" role="status" aria-live="polite"></p>
 </main>
-<footer class="page-footer"><span>TelaTetris <span class="footer-dot">/</span> Planificación de materiales</span><span>Una herramienta de LABS · Motor Arrange</span></footer>
-<script src="arrange.js"></script><script src="presets.js"></script><script src="planner.js"></script>
+<footer class="page-footer"><span>Arrange <span class="footer-dot">/</span> Planificación de materiales</span><span>Una herramienta de LABS · Motor Arrange</span></footer>
+<script src="ui-sdk.js"></script><script src="woodworking.js"></script><script src="arrange.js"></script><script src="presets.js"></script><script src="planner.js"></script>
 </body>
 </html>

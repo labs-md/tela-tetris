@@ -1,14 +1,12 @@
-/* Keep packing off the UI thread when served over HTTP. */
-importScripts('arrange.js');
-onmessage = ({ data: request }) => {
+importScripts('arrange.js', 'woodworking.js');
+onmessage = ({data}) => {
   try {
-    const session = Arrange.session(request);
-    const tick = () => {
-      session.step(80);
-      const result = session.result();
-      postMessage({ result, done:session.done });
-      if (!session.done) setTimeout(tick, 0);
+    if (data.kind === 'wood') { postMessage({result:Woodworking.plan(data.order,data.stock),done:true}); return; }
+    const session=Arrange.session(data.request || data);
+    const tick=()=>{
+      session.step(80);postMessage({result:session.result(),done:session.done});
+      if(!session.done)setTimeout(tick,0);
     };
     tick();
-  } catch (error) { postMessage({ error:error.message }); }
+  } catch(error) { postMessage({error:error.message}); }
 };

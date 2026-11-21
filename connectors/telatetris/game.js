@@ -1,6 +1,7 @@
 /*
  * TelaTetris game.
  *   start  → a floating, turning T-shirt and EMPEZAR
+ *   story  → Chepe gets an order, goes to the fabric shop, doesn't know how many yards to buy
  *   intro  → the order's T-shirt comes apart and its pieces fly into the piece bank
  *   play   → the player lays out the order
  *   review → the player's roll length is shown; the algorithm searches meanwhile
@@ -1690,6 +1691,315 @@
     });
   }
 
+  // -------------------------------------------------------------- story ---
+  // After EMPEZAR: a short adventure-game cutscene. Chepe, a tailor, gets an
+  // order for T-shirts, crosses town to the fabric shop, and is asked how many
+  // yards he needs. He doesn't know; the game is how he finds out. Player-paced:
+  // each line waits for Enter, Space, a click or a controller button.
+
+  const ART_W = 192, ART_H = 108;   // scene resolution; scaled up without smoothing
+  const STORY_PAL = {
+    k: '#1C1C1B', o: '#3B3D2B', g: '#46423F', d: '#2E2D29', G: '#8F8C85', l: '#CFCFCD', w: '#FFFFFF',
+    y: '#E8FB5B', Y: '#C6D64C', r: '#F95300', p: '#E2B48C', b: '#5B3B24',
+  };
+  // 10×14 sprites, one character per pixel ('.' = clear).
+  const SPR = {
+    chepeFront: [
+      '..kkkkkk..', '.kkkkkkkk.', '.kkppppkk.', '.kpkppkpk.', '.kppppppk.', '..kpppk...',
+      '.kyyyyyyk.', 'kyyyyyyyyk', 'kpyyyyyypk', 'kpyyyyyypk', '.kyyyyyyk.', '.kggkkggk.',
+      '.kgk..kgk.', '.kkk..kkk.',
+    ],
+    chepeSideA: [
+      '..kkkkk...', '.kkkkkkk..', '.kkkpppk..', '.kkppkpk..', '.kkppppk..', '..kpppk...',
+      '..kyyyk...', '.kyyyyyk..', '.kyypyyk..', '.kyypyyk..', '..kyyyk...', '..kgggk...',
+      '.kgk.kgk..', '.kk...kk..',
+    ],
+    chepeSideB: [
+      '..kkkkk...', '.kkkkkkk..', '.kkkpppk..', '.kkppkpk..', '.kkppppk..', '..kpppk...',
+      '..kyyyk...', '.kyyyyyk..', '.kyyyyyk..', '.kyyyypk..', '..kyyyk...', '..kgggk...',
+      '..kgkgk...', '..kkkk....',
+    ],
+    rosa: [
+      '...llll...', '..llllll..', '.llppppll.', '.lpkppkpl.', '.lppppppl.', '..lpprpl..',
+      '.kwwwwwwk.', 'kwrrrrrrwk', 'kprrrrrrpk', 'kprrrrrrpk',
+    ],
+    letter: ['kkkkkkkk', 'kwwwwwwk', 'kkwwwwkk', 'kwkwwkwk', 'kwwkkwwk', 'kkkkkkkk'],
+  };
+
+  let story = null;
+
+  function storyBeats() {
+    const n = totalShirts();
+    const order = Object.keys(counts).filter((k) => counts[k])
+      .map((k) => `${counts[k] === 1 ? 'una' : counts[k] === 2 ? 'dos' : counts[k] === 3 ? 'tres' : 'cuatro'} ${k}`);
+    const list = order.length > 1 ? `${order.slice(0, -1).join(', ')} y ${order[order.length - 1]}` : order[0];
+    return [
+      { scene: 'taller', who: '', text: 'Ciudad de Guatemala. En un pequeño taller de costura...' },
+      { scene: 'taller', who: '', text: '¡Llega un pedido nuevo!', letter: true, sfx: 'pop' },
+      { scene: 'taller', who: 'CHEPE', text: `¡${n} ${n === 1 ? 'playera' : 'playeras'}! ${list[0].toUpperCase()}${list.slice(1)}.`, letter: true, order: true },
+      { scene: 'taller', who: 'CHEPE', text: 'Primero tengo que comprar la tela. ¡A la tienda!', order: true },
+      { scene: 'mapa', who: '', text: 'Chepe cruza el pueblo en busca de la tienda de telas...', walk: true, sfx: 'whoosh' },
+      { scene: 'tienda', who: 'DOÑA ROSA', text: '¡Buenas! Bienvenido a la tienda. ¿Qué le doy?', sfx: 'select' },
+      { scene: 'tienda', who: 'CHEPE', text: `Tela de algodón, del rollo de 150 cm, para ${n} ${n === 1 ? 'playera' : 'playeras'}.` },
+      { scene: 'tienda', who: 'DOÑA ROSA', text: 'Con gusto. ¿Cuántas yardas le corto?' },
+      { scene: 'tienda', who: 'CHEPE', text: '¿Cuántas... yardas? Eh... mmm...', confused: true, sfx: 'bad' },
+      { scene: 'tienda', who: '', text: 'Si compra de más, pierde dinero. Si compra de menos, no le alcanza.', confused: true },
+      { scene: 'tienda', who: '', text: '¡Ayuda a Chepe a saber cuánta tela comprar!', confused: true },
+    ];
+  }
+
+  function startStory() {
+    const el = $('story');
+    if (!el || !fxg) { startIntro(); return; }
+    story = { beats: storyBeats(), i: -1, chars: 0, beatT0: 0, sceneT0: 0, scene: null, fadeT0: 0, off: document.createElement('canvas') };
+    el.hidden = false;
+    setStep(1);
+    nextBeat();
+    const loop = () => {
+      if (!story) return;
+      tickStory(performance.now());
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  function nextBeat() {
+    story.i++;
+    if (story.i >= story.beats.length) { endStory(); return; }
+    const b = story.beats[story.i];
+    const now = performance.now();
+    if (b.scene !== story.scene) { story.scene = b.scene; story.sceneT0 = now; story.fadeT0 = now; }
+    story.beatT0 = now;
+    story.chars = 0;
+    story.typed = 0;
+    if (b.sfx) sfx(b.sfx);
+    $('storyName').textContent = b.who;
+    $('storyName').hidden = !b.who;
+    $('storyText').textContent = '';
+    $('storyBox').classList.toggle('narrator', !b.who);
+  }
+
+  /** Finish the line if it's still typing; otherwise go on. */
+  function advanceStory() {
+    if (!story) return;
+    const b = story.beats[story.i];
+    if (story.chars < b.text.length) { story.chars = b.text.length; $('storyText').textContent = b.text; return; }
+    sfx('select');
+    nextBeat();
+  }
+
+  function endStory() {
+    if (!story) return;
+    story = null;
+    const el = $('story');
+    el.classList.add('leaving');
+    setTimeout(() => { el.hidden = true; el.classList.remove('leaving'); startIntro(); }, reducedMotion ? 0 : 320);
+  }
+
+  /** For pitches: skip the story, the intro and the controls, straight to the round. */
+  function skipToGame() {
+    if (story) { story = null; $('story').hidden = true; }
+    if (intro) { endIntro(); return; }
+    sfx('go');
+    shout('¡YA!', { kind: 'big', burst: true, dur: 650 });
+    setStep(3);
+    setHeading(PLAY_TITLE, PLAY_SUB);
+    $('keys').style.visibility = '';
+    updateSide();
+    requestRender();
+  }
+
+  function tickStory(now) {
+    const b = story.beats[story.i];
+    if (!b) return;
+    // typewriter, slow enough to read along
+    const want = reducedMotion ? b.text.length : Math.min(b.text.length, Math.floor((now - story.beatT0 - 250) / 34));
+    if (want > story.chars) {
+      if (Math.floor(want / 3) > Math.floor(story.chars / 3)) sfx('tick');
+      story.chars = want;
+      $('storyText').textContent = b.text.slice(0, story.chars);
+    }
+    $('storyBox').classList.toggle('done', story.chars >= b.text.length);
+    drawStory(now);
+  }
+
+  function sprite(o, rows, x, y, flip = false) {
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      for (let c = 0; c < row.length; c++) {
+        const ch = row[flip ? row.length - 1 - c : c];
+        if (ch === '.') continue;
+        o.fillStyle = STORY_PAL[ch];
+        o.fillRect(Math.round(x) + c, Math.round(y) + r, 1, 1);
+      }
+    }
+  }
+
+  function rect(o, x, y, w, h, c) { o.fillStyle = STORY_PAL[c] || c; o.fillRect(x, y, w, h); }
+
+  function tree(o, x, y) {
+    rect(o, x + 4, y + 9, 3, 5, 'b');
+    rect(o, x + 1, y + 1, 9, 9, 'k');
+    rect(o, x, y + 3, 11, 5, 'k');
+    rect(o, x + 2, y + 2, 7, 7, 'Y');
+    rect(o, x + 1, y + 4, 9, 3, 'Y');
+    rect(o, x + 3, y + 3, 3, 2, 'y');
+  }
+
+  function drawStory(now) {
+    const c = $('storyCanvas');
+    const dpr = window.devicePixelRatio || 1;
+    const W = c.clientWidth, H = c.clientHeight;
+    if (!W || !H) return;
+    if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+    const off = story.off;
+    if (off.width !== ART_W) { off.width = ART_W; off.height = ART_H; }
+    const o = off.getContext('2d');
+    const b = story.beats[story.i];
+    const st = now - story.sceneT0, bt = now - story.beatT0;
+    o.clearRect(0, 0, ART_W, ART_H);
+    const labels = [];   // [text, artX, artY, color, size] drawn crisp after scaling
+
+    if (story.scene === 'taller') {
+      rect(o, 0, 0, ART_W, 56, 'd');
+      rect(o, 0, 54, ART_W, 2, 'k');
+      for (let y = 56; y < ART_H; y += 7) { rect(o, 0, y, ART_W, 7, y % 14 ? 'g' : '#4b4743'); rect(o, 0, y, ART_W, 1, 'k'); }
+      // window
+      rect(o, 18, 10, 32, 24, 'k'); rect(o, 20, 12, 28, 20, 'o'); rect(o, 20, 12, 28, 6, '#55583a');
+      rect(o, 33, 12, 2, 20, 'k'); rect(o, 20, 21, 28, 2, 'k');
+      // fabric shelf
+      rect(o, 128, 14, 40, 3, 'b'); rect(o, 128, 32, 40, 3, 'b');
+      [['y', 130], ['r', 140], ['w', 150], ['l', 159]].forEach(([col, x]) => { rect(o, x, 6, 8, 8, 'k'); rect(o, x + 1, 7, 6, 6, col); });
+      [['Y', 132], ['y', 142], ['r', 152]].forEach(([col, x]) => { rect(o, x, 24, 8, 8, 'k'); rect(o, x + 1, 25, 6, 6, col); });
+      // door
+      rect(o, 172, 24, 18, 32, 'k'); rect(o, 174, 26, 14, 30, 'o'); rect(o, 185, 40, 2, 2, 'y');
+      // table + sewing machine
+      rect(o, 52, 56, 52, 4, 'k'); rect(o, 53, 56, 50, 3, 'G'); rect(o, 56, 60, 3, 14, 'k'); rect(o, 97, 60, 3, 14, 'k');
+      rect(o, 62, 42, 26, 14, 'k'); rect(o, 63, 43, 24, 12, 'w'); rect(o, 63, 43, 6, 12, 'l'); rect(o, 80, 47, 4, 9, 'k');
+      rect(o, 72, 39, 3, 4, 'r'); rect(o, 66, 55, 18, 1, 'G');
+      labels.push(['TALLER', 34, 6, COL.dim, 3]);
+      // Chepe
+      const bob = reducedMotion ? 0 : Math.round(Math.sin(st / 260));
+      sprite(o, SPR.chepeFront, 116, 62 + bob);
+      // the order arrives through the door
+      if (b.letter) {
+        const p = b.order ? 1 : clamp01(bt / 700);
+        const lx = lerp(176, 118, ease(p)), ly = lerp(36, 52, ease(p)) - Math.sin(p * Math.PI) * 14;
+        if (!b.order || p < 1) sprite(o, SPR.letter, lx, ly);
+      }
+      if (b.order) {
+        rect(o, 60, 12, 72, 30, 'k'); rect(o, 61, 13, 70, 28, 'w'); rect(o, 61, 13, 70, 7, 'y');
+        labels.push(['PEDIDO', 96, 14.6, COL.black, 3.4]);
+        const sizes = Object.keys(counts).filter((k) => counts[k]);
+        sizes.forEach((k, i) => {
+          const x = 64 + i * (66 / sizes.length) + 2;
+          for (let s = 0; s < counts[k]; s++) {
+            const sx = x + s * 6, sy = 24;
+            rect(o, sx, sy, 5, 2, 'y'); rect(o, sx - 1, sy + 1, 7, 1, 'y'); rect(o, sx + 1, sy + 2, 3, 3, 'y');
+            rect(o, sx - 1, sy, 1, 1, 'k');
+          }
+          labels.push([`${counts[k]}× ${k}`, x + 8, 32, COL.black, 3]);
+        });
+      }
+    } else if (story.scene === 'mapa') {
+      rect(o, 0, 0, ART_W, ART_H, 'o');
+      for (let i = 0; i < 90; i++) {
+        const x = (i * 53) % ART_W, y = (i * 29 + (i % 5) * 7) % ART_H;
+        rect(o, x, y, 1, 1, '#55583a'); rect(o, x + 1, y - 1, 1, 1, '#55583a');
+      }
+      // path
+      rect(o, 26, 64, 146, 10, '#6e6b64'); rect(o, 26, 65, 146, 8, 'G');
+      for (let x = 30; x < 170; x += 9) rect(o, x, 68, 3, 1, '#a19e97');
+      // workshop
+      rect(o, 4, 40, 30, 26, 'k'); rect(o, 6, 46, 26, 19, 'l');
+      for (let i = 0; i < 4; i++) rect(o, 4 + i * 2, 40 - i * 3, 30 - i * 4, 4, i % 2 ? 'r' : '#c94400');
+      rect(o, 16, 54, 7, 11, 'k'); rect(o, 17, 55, 5, 10, 'b');
+      labels.push(['TALLER', 19, 26, COL.text, 3]);
+      // fabric shop
+      rect(o, 154, 36, 34, 30, 'k'); rect(o, 156, 44, 30, 21, 'w');
+      for (let i = 0; i < 4; i++) rect(o, 154 + i * 2, 36 - i * 3, 34 - i * 4, 4, i % 2 ? 'y' : 'Y');
+      for (let x = 156; x < 186; x += 6) { rect(o, x, 44, 3, 4, 'y'); rect(o, x + 3, 44, 3, 4, 'w'); }
+      rect(o, 166, 54, 8, 11, 'k'); rect(o, 167, 55, 6, 10, 'r');
+      rect(o, 158, 50, 6, 5, 'k'); rect(o, 159, 51, 4, 3, 'l'); rect(o, 177, 50, 6, 5, 'k'); rect(o, 178, 51, 4, 3, 'l');
+      labels.push(['TELAS', 171, 21, COL.yellow, 3.4]);
+      // trees
+      [[44, 34], [62, 42], [84, 30], [108, 40], [128, 32], [52, 80], [76, 88], [100, 80], [124, 90], [146, 82], [20, 84], [168, 86]]
+        .forEach(([x, y]) => tree(o, x, y));
+      // HUD: the order, like an adventure-game inventory
+      rect(o, 3, 3, 46, 11, 'k'); rect(o, 4, 4, 44, 9, 'd');
+      for (let i = 0; i < totalShirts(); i++) {
+        const sx = 7 + i * 7, sy = 6;
+        rect(o, sx, sy, 5, 2, 'y'); rect(o, sx - 1, sy + 1, 7, 1, 'y'); rect(o, sx + 1, sy + 2, 3, 3, 'y');
+      }
+      // Chepe walks to the shop
+      const p = reducedMotion ? 1 : clamp01((st - 400) / 4200);
+      const x = lerp(22, 160, p);
+      const frame = p < 1 && Math.floor(st / 150) % 2 ? SPR.chepeSideB : SPR.chepeSideA;
+      sprite(o, frame, x, 54 - (p < 1 && Math.floor(st / 150) % 2 ? 1 : 0));
+      if (p < 1 && Math.floor(st / 300) % 2) rect(o, x - 2, 66, 2, 1, 'l');
+      if (p >= 1 && Math.floor(st / 400) % 2) labels.push(['!', x + 5, 44, COL.yellow, 6]);
+    } else {
+      // the shop
+      rect(o, 0, 0, ART_W, 60, 'd'); rect(o, 0, 58, ART_W, 2, 'k');
+      for (let y = 60; y < ART_H; y += 8) for (let x = 0; x < ART_W; x += 8) rect(o, x, y, 8, 8, ((x + y) / 8) % 2 ? 'g' : '#3d3a37');
+      // shelves of rolls
+      const cols = ['y', 'r', 'w', 'l', 'Y', 'r', 'y', 'w', 'G', 'y', 'l', 'r', 'Y', 'w'];
+      for (let s = 0; s < 3; s++) {
+        const y = 8 + s * 16;
+        rect(o, 8, y + 12, 176, 3, 'b');
+        for (let i = 0; i < 14; i++) {
+          const x = 10 + i * 12.4;
+          rect(o, x, y + 2, 11, 10, 'k'); rect(o, x + 1, y + 3, 9, 8, cols[(i + s * 5) % cols.length]);
+          rect(o, x + 1, y + 3, 2, 8, 'k');
+        }
+      }
+      // counter and the big roll
+      rect(o, 98, 66, 90, 4, 'k'); rect(o, 99, 66, 88, 3, 'G'); rect(o, 99, 70, 88, 26, 'g'); rect(o, 99, 70, 88, 2, 'k');
+      rect(o, 150, 56, 32, 10, 'k'); rect(o, 151, 57, 30, 8, 'y'); rect(o, 151, 57, 4, 8, 'Y'); rect(o, 177, 57, 4, 8, 'Y');
+      labels.push(['150 cm', 166, 52, COL.yellow, 3]);
+      // Doña Rosa behind the counter
+      const rb = reducedMotion ? 0 : Math.round(Math.sin(st / 330));
+      sprite(o, SPR.rosa, 122, 56 + rb);
+      // Chepe, puzzled when asked how much
+      const shake = b.confused && !reducedMotion && bt < 600 ? Math.round(Math.sin(bt / 30)) : 0;
+      const cx = 86;
+      sprite(o, SPR.chepeSideA, cx + shake, 64);
+      if (b.confused) {
+        const t2 = bt / 220;
+        labels.push(['?', cx + 2, 52 - Math.abs(Math.sin(t2)) * 3, COL.yellow, 7]);
+        labels.push(['?', cx + 12, 48 - Math.abs(Math.sin(t2 + 1.3)) * 3, COL.orange, 5]);
+        labels.push(['?', cx - 6, 50 - Math.abs(Math.sin(t2 + 2.1)) * 3, COL.text, 4]);
+        if (Math.floor(bt / 500) % 2 === 0) { rect(o, cx + 11, 63, 2, 3, 'l'); rect(o, cx + 12, 66, 1, 1, 'w'); }
+      }
+    }
+
+    // scale up: cover the screen, keep pixels square
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = COL.black;
+    g.fillRect(0, 0, W, H);
+    const scale = Math.max(W / ART_W, H / ART_H);
+    const dw = ART_W * scale, dh = ART_H * scale;
+    const ox = (W - dw) / 2, oy = Math.min(0, (H - dh) / 2);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(off, ox, oy, dw, dh);
+    g.textAlign = 'center';
+    g.textBaseline = 'top';
+    for (const [text, x, y, color, size] of labels) {
+      g.font = `400 ${Math.round(size * scale)}px ${PIX}`;
+      if (color !== COL.black) {   // dark text sits on light cards and needs no outline
+        g.lineWidth = Math.max(2, scale * 0.9);
+        g.strokeStyle = COL.black;
+        g.strokeText(text, ox + x * scale, oy + y * scale);
+      }
+      g.fillStyle = color;
+      g.fillText(text, ox + x * scale, oy + y * scale);
+    }
+    // scene fade-in
+    const f = reducedMotion ? 1 : clamp01((now - story.fadeT0) / 350);
+    if (f < 1) { g.fillStyle = `rgba(0,0,0,${1 - f})`; g.fillRect(0, 0, W, H); }
+  }
+
   // ------------------------------------------------------- start screen ---
   // A pixel T-shirt floats and turns; EMPEZAR (or Space) leads into the journey.
 
@@ -1722,7 +2032,8 @@
     sfx('start');
     const el = $('start');
     el.classList.add('leaving');
-    setTimeout(() => { el.hidden = true; el.classList.remove('leaving'); startIntro(); }, reducedMotion ? 0 : 320);
+    const skipStory = typeof location !== 'undefined' && /[?&]story=0\b/.test(location.search);
+    setTimeout(() => { el.hidden = true; el.classList.remove('leaving'); if (skipStory) startIntro(); else startStory(); }, reducedMotion ? 0 : 320);
   }
 
   /** Drawn small and scaled up without smoothing, so the shirt stays pixel art. */
@@ -1884,7 +2195,7 @@
 
   function help() {
     if (G.phase === 'result') newGame();
-    if (G.phase === 'play' && G.t0 === null && !G.placements.length) startIntro();
+    if (G.phase === 'play' && G.t0 === null && !G.placements.length) startStory();
     else toast('La intro se ve antes de empezar o al final');
   }
 
@@ -1905,6 +2216,12 @@
     if (e.key === 'm' || e.key === 'M') { toggleSound(); return; }
     if (startOn) {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); beginFromStart(); }
+      return;
+    }
+    if (story) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); advanceStory(); }
+      else if (e.key === 'Escape') { e.preventDefault(); endStory(); }
+      else if (e.key === 'j' || e.key === 'J') { e.preventDefault(); skipToGame(); }
       return;
     }
     if (intro) {
@@ -1947,6 +2264,9 @@
   $('bAgain').onclick = () => { newGame(); sfx('start'); };
   $('bHelp').onclick = help;
   $('bStart').onclick = beginFromStart;
+  $('bSkipStory').onclick = (e) => { e.stopPropagation(); endStory(); };
+  $('bSkipAll').onclick = (e) => { e.stopPropagation(); skipToGame(); };
+  $('story').addEventListener('click', () => advanceStory());
   $('bOk').onclick = confirmControls;
   $('bSound').onclick = toggleSound;
   if (!Sound.on) { $('bSound').setAttribute('aria-pressed', 'false'); $('bSound').textContent = '♪ Off'; }
@@ -2051,6 +2371,8 @@
   function onPadPress(down) {
     // Any button starts from the start screen and skips the journey.
     if (startOn) { beginFromStart(); return; }
+    // In the story, Start skips it and any other button goes to the next line.
+    if (story) { if (down(BTN.START)) endStory(); else if (down(BTN.SELECT)) skipToGame(); else advanceStory(); return; }
     // On the controls screen only A or Start means OK; elsewhere any button skips ahead.
     if (intro) { if (intro.stage !== 'controls' || down(BTN.A) || down(BTN.START)) skipIntro(); return; }
     if (G.phase === 'move') { G.moveT0 = -1e9; return; }

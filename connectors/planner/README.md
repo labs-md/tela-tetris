@@ -1,26 +1,37 @@
-# TelaTetris fabric planner
+# Arrange materials planner
 
-A separate Spanish-language purchasing portal. Open [index.html](index.html) directly in a browser. The existing [arcade game](../telatetris/index.html) is unchanged. No build, server or dependencies are required. The folder includes its engine and can also be served on its own or opened through a workspace-file preview.
+A separate Spanish-language purchasing portal for fabric and wood. Open [index.html](index.html) directly in a browser, serve this folder, or use a folder-restricted workspace preview. All runtime assets are included locally. The arcade game lives separately in [../telatetris](../telatetris/).
 
-Start with an empty order. Choose playeras, pantalones or chaquetas, set S–XL quantities, and combine up to 12 garments through the review step. Empty or invalid quantities block progression. Editing invalidates old estimates; leaving an active calculation cancels it. The Arrange engine nests the actual preset polygons on a fixed 150 cm roll with a 1 cm gap. Only 0° and 180° rotations are allowed to retain grain direction. Watch the arrangement, read the linear yards to buy, replay it, or download the layout as SVG.
+## Guided planning
 
-The purchase is `ceil(lengthCm / 91.44 * 4) / 4`, rounded **up** to a quarter yard. The layout also reports its exact length and utilization. Editing any quantity invalidates the old purchase immediately. A worker keeps the UI responsive over HTTP; direct-file mode uses scheduled incremental search.
+Choose Tela or Madera, select presets, define quantities and measurements, review the order, then calculate the material to buy. Each material keeps its own draft when switching. Deselecting a preset clears that type's quantities. Editing invalidates the old estimate; leaving a running calculation cancels it.
 
-These are illustrative patterns, not validated production patterns. Size grading is a reference scale. Pants and jackets are unlined. No extra seam allowances, shrinkage, fabric defects, print matching, lining or notions are included. Review actual sewing patterns before purchasing or cutting.
+For **Tela**, select playeras, pantalones and chumpas together. Each selected type gets independent S–XL quantities, up to 12 garments total. The Arrange engine nests preset polygons on a 150 cm roll with 1 cm spacing and 0°/180° rotation to preserve grain. The purchase is `ceil(lengthCm / 91.44 * 4) / 4`, rounded up to a quarter yard. Watch the arrangement, read the measured length and utilization, and download an SVG.
 
-## Design
+For **Madera**, choose custom straight cuts, shelves, cabinet sides, strips, stretchers, legs and 45° miter pieces. Edit length and width in centimeters, quantity, stock plank dimensions and thickness in centimeters, and saw kerf in millimeters. Initial dimensions are editable examples. Up to 100 parts share the stock thickness and keep their length along the grain. The result recommends whole planks of the entered size and shows a measured diagram and numbered part list for every plank, plus SVG export.
 
-The portal uses a professional light theme with [labs.gt](https://labs.gt) yellow and orange accents and its self-hosted Neuton and Inter fonts, inspected from the public site on 2026-11-21. A four-step wizard guides garment selection, quantities, order review and the calculated fabric plan. Back navigation preserves quantities; the review supports adding another garment, and the final step shows the measured layout and purchase summary. Font licenses are in `fonts/`. It uses no retro display fonts, scanlines, bevels, game timers or sound. The portal's visual system is recorded in [DESIGN.md](DESIGN.md); the root design system remains specific to the game.
+The woodworking allocator tries eight deterministic guillotine strategies and chooses the plan using the fewest planks. Every split reserves blade kerf. A miter's length runs between the outside tips; its rectangular blank reserves the angled offcuts. Bounds, kerf separation, identities and completeness are checked before displaying a result. The estimate does not prove the theoretical minimum. It excludes defects, end trimming, planing, thickness changes, bevels, grooves and joinery.
+
+Textile patterns and size scaling are illustrative, not validated sewing patterns. Pants and jackets are unlined. No extra seam allowance, shrinkage, fabric defects, print matching, lining or notions are included. Review real patterns before buying or cutting. Exported SVGs illustrate the plan and are not certified cutting files.
+
+## UI and local builds
+
+The professional light interface keeps LABS yellow/orange accents and self-hosted Neuton and Inter fonts. The actual [Vercel UI SDK](https://github.com/vercel-labs/ui) Web Components own selection, numeric stepping, keyboard behavior and ARIA. The application handles project validation and calculation state. `window.plannerAgent` exposes the SDK agent bridge.
+
+The checked-in SDK source is version `0.1.0-beta.14`, with its Apache license and SHA-256 manifest in `vendor/ui-sdk/`. The manifest identifies the retrieved archive and every source file. `ui-entry.js` imports only the components used here and the agent bridge. esbuild produces the local classic-script `ui-sdk.js`, so direct-file mode and scoped previews need no CDN or framework runtime.
+
+The checked-in page needs no build. To rebuild after SDK or entry changes, install the pinned tooling with `pnpm install --frozen-lockfile`, then run `npm run build:planner:ui`. After changing the shared engine, run `npm run build:planner` to refresh the shipped `arrange.js` copy. Tests enforce that synchronization.
 
 ## Files
 
-- `arrange.js`: shipped copy of the shared Arrange engine, loaded locally by the page and worker so previews never need parent-folder assets. After changing the shared engine, run `npm run build:planner` to refresh it. Tests verify that the shipped engine stays synchronized.
-
-- `presets.js`: independent garment geometry, order validation and purchase conversion, available in Node and the browser.
-- `planner.js`: order controls, canvas animation, layout states and SVG export.
-- `planner-worker.js`: off-thread arrangement using the shared engine.
-- `planner.css`: responsive labs.gt-style workspace.
+- `presets.js`: textile outlines, sizes, validation and purchase conversion.
+- `woodworking.js`: wood presets, stock validation, allocation and report geometry.
+- `planner.js`: material drafts, guided controls, canvas/SVG views and export.
+- `planner-worker.js`: background textile search or woodworking allocation. Direct-file mode runs the same algorithms on the main thread.
+- `planner.css`: responsive LABS workspace. [DESIGN.md](DESIGN.md) records its visual system.
 
 ## Verification
 
-Run `npm test` for engine, game, preset and isolated planner-asset tests. Run `npm run test:planner:preview` to exercise the wizard under the same nested, folder-restricted URL layout as workspace-file previews. Run `npm run test:planner:browser` with Node 22+ and Chrome for desktop/mobile captures and interaction checks. Set `CHROME_PATH` if Chrome is not installed in the standard macOS location. The browser check drives all four steps and covers empty/invalid quantity gates, back navigation, editing, mixed orders, cancellation, new-order reset, HTTP workers, direct-file fallback, reduced motion and SVG export.
+Run `npm test` for engine, game, preset, woodworking and isolated asset tests. Run `npm run test:planner:preview` with Node 22+ and Chrome to exercise both journeys under a nested, folder-restricted preview URL. `npm run test:planner:browser` serves the full project instead. Set `CHROME_PATH` if needed.
+
+The browser check covers real SDK controls and the agent bridge, both materials, independent draft preservation, validation, multi-selection, back navigation, cancellation, new-order reset, HTTP workers, direct-file fallback, desktop/mobile overflow, reduced motion and both SVG exports.

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conectar puntajes · TelaTetris</title>
+  <style>
+    @font-face { font-family: 'Press Start 2P'; src: url('fonts/press-start-2p.ttf') format('truetype'); font-display: swap; }
+    @font-face { font-family: 'IBM Plex Mono'; src: url('fonts/ibm-plex-mono.ttf') format('truetype'); font-display: swap; }
+    :root { color-scheme: dark; --bg: #1C1C1B; --text: #FFFFFF; --muted: #CFCFCD; --yellow: #E8FB5B; --orange: #F95300; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text); font: 16px/1.6 'IBM Plex Mono', monospace; }
+    main { width: min(100%, 520px); }
+    h1 { margin: 0 0 24px; color: var(--yellow); font: 400 clamp(20px, 5vw, 28px)/1.6 'Press Start 2P', monospace; }
+    p { color: var(--muted); margin: 0 0 28px; }
+    label { display: block; margin-bottom: 8px; }
+    input { display: block; width: 100%; min-width: 0; padding: 14px; border: 1px solid var(--muted); border-radius: 0; background: #242420; color: var(--text); font: inherit; caret-color: var(--yellow); }
+    button { width: 100%; margin-top: 20px; padding: 16px; border: 0; border-radius: 0; background: var(--yellow); color: var(--bg); font: 400 14px/1.6 'Press Start 2P', monospace; cursor: pointer; }
+    button:hover { background: #FFFFFF; }
+    button:active { transform: translateY(1px); }
+    button:disabled { cursor: wait; opacity: 0.7; }
+    a { display: inline-block; color: var(--muted); margin-top: 24px; text-underline-offset: 4px; }
+    a:hover { color: var(--yellow); }
+    :focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; }
+    ::selection { background: var(--yellow); color: var(--bg); }
+    #error { color: var(--orange); margin: 16px 0 0; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Conectar puntajes</h1>
+    <p>Pega el token de Instabloom para registrar tus puntajes. Se guarda en esta pestaña y se envía solo a Instabloom.</p>
+    <form id="scoreConnection">
+      <label for="ingestionToken">Token de Instabloom</label>
+      <input id="ingestionToken" type="password" required autocomplete="off" spellcheck="false" aria-describedby="error">
+      <p id="error" role="alert" hidden></p>
+      <button id="connectScores" type="submit">Conectar y jugar</button>
+    </form>
+    <a href="index.html">Jugar sin registrar puntajes</a>
+  </main>
+  <script src="score-events.js?v=3" data-manual-start></script>
+  <script src="score-setup.js?v=1"></script>
+</body>
+</html>

@@ -52,6 +52,17 @@ test('isolated browser fixture exposes the client without starting the real send
   assert.equal(window.TelaTetrisScores, undefined);
 });
 
+test('the browser session token is used without embedding it into the sender queue', () => {
+  const values = new Map([['telatetris-instabloom-session-token', 'synthetic-session-token']]);
+  const window = {
+    document: { currentScript: { hasAttribute: () => true } },
+    sessionStorage: { getItem: (key) => values.get(key) ?? null },
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../connectors/telatetris/score-events.js'), 'utf8'), { window });
+  assert.equal(window.TelaTetrisScoreClient.sessionToken(), 'synthetic-session-token');
+  assert.equal(JSON.stringify(initialState()).includes('synthetic-session-token'), false);
+});
+
 async function capture(context, score = 120) {
   const id = await context.sender.record(score);
   await new Promise(setImmediate);

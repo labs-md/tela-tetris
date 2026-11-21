@@ -20,7 +20,7 @@ test('the planner loads its engine and presets inside a folder-restricted previe
   const context = vm.createContext({ window: {} });
   for (const source of scripts) {
     const code = asset(source);
-    if (source !== 'planner.js') vm.runInContext(code, context, { filename: source });
+    if (['arrange.js', 'presets.js', 'woodworking.js'].includes(source)) vm.runInContext(code, context, { filename: source });
   }
   const { Arrange, Presets } = context.window;
   assert.equal(typeof Arrange.session, 'function');
@@ -35,8 +35,8 @@ test('the planner worker calculates using only files inside its preview folder',
   const context = vm.createContext({
     postMessage: message => messages.push(message),
     setTimeout() { throw new Error('One iteration should complete synchronously'); },
-    importScripts(source) {
-      vm.runInContext(asset(source, new URL('planner-worker.js', previewBase)), context, { filename: source });
+    importScripts(...sources) {
+      for (const source of sources) vm.runInContext(asset(source, new URL('planner-worker.js', previewBase)), context, { filename: source });
     },
   });
   vm.runInContext(asset('planner-worker.js'), context, { filename: 'planner-worker.js' });
@@ -49,4 +49,27 @@ test('the planner worker calculates using only files inside its preview folder',
 test('the shipped planner engine matches the shared engine', () => {
   assert.equal(asset('arrange.js'), fs.readFileSync(path.join(__dirname, '../arrange/arrange.js'), 'utf8'),
     'Regenerate the planner engine with npm run build:planner');
+});
+
+
+test('the scoped worker returns every woodworking part with the entered millimeter kerf', () => {
+  const messages = [];
+  const context = vm.createContext({
+    postMessage: message => messages.push(message),
+    importScripts(...sources) {
+      for (const source of sources) vm.runInContext(asset(source, new URL('planner-worker.js', previewBase)), context, { filename: source });
+    },
+  });
+  vm.runInContext(asset('planner-worker.js'), context, { filename: 'planner-worker.js' });
+  context.onmessage({ data: {
+    kind: 'wood', order: { recto: { length: 50, width: 20, quantity: 2 } },
+    stock: { length: 100, width: 20, thickness: 1.8, kerf: 3 },
+  } });
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].done, true);
+  assert.equal(messages[0].result.stock.kerf, 3);
+  assert.equal(messages[0].result.stock.thickness, 18);
+  assert.equal(messages[0].result.stock.length, 1000);
+  assert.equal(messages[0].result.boardCount, 2);
+  assert.equal(messages[0].result.pieceCount, 2);
 });

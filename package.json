@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Raster engine for laying out irregular shapes on a strip (nesting / strip packing), with a JSON protocol for connectors.",
   "main": "arrange/arrange.js",
-  "bin": { "arrange": "arrange/cli.js" },
+  "bin": {
+    "arrange": "arrange/cli.js"
+  },
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -11,6 +13,10 @@
     "build:planner": "node scripts/build-planner.cjs",
     "test:planner:preview": "node scripts/verify-planner.cjs --asset-preview",
     "test:planner:browser": "node scripts/verify-planner.cjs",
-    "example": "node connectors/sheet-metal/sheet-metal.js"
+    "example": "node connectors/sheet-metal/sheet-metal.js",
+    "build:planner:ui": "node scripts/build-planner-ui.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

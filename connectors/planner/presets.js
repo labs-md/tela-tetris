@@ -25,7 +25,7 @@
       ],
     },
     chaqueta: {
-      name: 'Chaqueta', plural: 'Chaquetas', description: 'Manga larga · sin forro', fabric: 'Tejido plano',
+      name: 'Chumpa', plural: 'Chumpas', description: 'Manga larga · sin forro', fabric: 'Tejido plano',
       pieces: [
         piece('Delantero', [[0,0],[74,0],[74,29],[22,29],[13,26],[8,18],[0,15]], '#E8FB5B', 2),
         piece('Espalda', [[0,7],[10,0],[76,0],[76,55],[10,55],[0,48],[8,39],[4,28],[8,16]], '#C6D64C'),

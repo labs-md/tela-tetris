@@ -1,3 +1,4 @@
+@layer ui-sdk;
 @font-face {
   font-family: Inter;
   src: url('fonts/inter-medium.woff2') format('woff2');
@@ -254,4 +255,69 @@ main { max-width: 1200px; margin: auto; padding: 36px 40px 32px; }
   .result-step .purchase-panel { border-top: 1px solid var(--line); }
   .planning-area { gap: 0; }
   .error { padding-inline: 22px; }
+}
+
+.preset { position: relative; }
+.preset .preset-check { position: absolute; top: 18px; right: 18px; width: 22px; height: 22px; stroke: #737b69; stroke-width: 1.5; fill: white; }
+.preset[aria-pressed=true] .preset-check { stroke: var(--text); fill: var(--yellow); }
+.selection-hint { margin-top: 20px; font-size: 13px; color: var(--muted); }
+.garment-sizes { margin-top: 28px; }
+.garment-size-group { margin: 0; padding: 0; border: 0; min-width: 0; }
+.garment-size-group + .garment-size-group { margin-top: 28px; }
+.garment-size-group + .garment-size-group::before { content: ''; display: block; border-top: 1px solid var(--line); margin-bottom: 24px; }
+.garment-size-group legend { padding: 0; font-size: 18px; }
+.garment-size-description { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.garment-size-group .sizes { max-width: none; margin-top: 16px; }
+.garment-size-group .pieces-panel { margin-top: 16px; padding-top: 0; border-top: 0; }
+input[aria-invalid=true] { border-color: #a93600; background: #fff4ed; }
+@media (max-width: 760px) {
+  .preset { padding-right: 44px; }
+  .preset .preset-check { width: 20px; height: 20px; top: 15px; right: 12px; }
+  .garment-sizes { margin-top: 24px; }
+  .garment-size-group legend { font-size: 17px; }
+}
+
+ui-toggle { display: contents; }
+ui-button { display: contents; }
+ui-number-input { display: block; min-width: 0; }
+ui-number-input-control, ui-number-input-increment, ui-number-input-decrement { display: contents; }
+ui-number-input-group { display: flex; }
+.material-choice { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+.material-choice > span { font-size: 13px; color: var(--muted); }
+#materialMode { display: inline-flex; gap: 4px; padding: 4px; background: var(--raised); border-radius: 7px; }
+#materialMode button { border: 1px solid transparent; background: transparent; color: var(--muted); padding: 8px 24px; min-height: 40px; font-size: 13px; }
+#materialMode button[data-pressed] { background: var(--panel); border-color: #b6bfab; color: var(--text); }
+.preset { width: 100%; height: 100%; }
+.preset .checkmark { display: none; }
+.preset[data-pressed] .checkmark { display: block; }
+.wood-catalog { grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 15px; }
+.wood-catalog .preset { min-height: 175px; padding: 23px; gap: 14px; }
+.wood-catalog .garment-icon { width: 52px; height: 52px; }
+.wood-catalog .preset strong { font-size: 15px; }
+.stock-panel { border-bottom: 1px solid var(--line); padding-bottom: 26px; margin-bottom: 26px; }
+.stock-panel > p { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.stock-fields { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 18px; margin-top: 20px; }
+.wood-fields { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.wood-layouts { max-height: 540px; overflow-y: auto; padding: 0 16px; min-height: 280px; }
+.wood-board { padding: 14px 0 22px; border-top: 1px solid var(--line); }
+.wood-board:first-child { border-top: 0; }
+.wood-diagram-scroll { max-width: 100%; overflow-x: auto; margin-top: 10px; }
+.wood-diagram-scroll svg { display: block; max-width: none; height: auto; }
+.wood-diagram-hint { font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+.wood-board details { font-size: 12px; color: var(--muted); }
+.wood-board summary { cursor: pointer; color: var(--text); width: fit-content; }
+.wood-piece-list { padding-left: 22px; margin-bottom: 0; display: grid; gap: 6px; }
+.wood-loading { font-size: 13px; color: var(--muted); padding: 32px 5px; }
+.wood-piece { animation: wood-place .5s cubic-bezier(.23,1,.32,1); }
+@keyframes wood-place { from { opacity: .3; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width:760px) {
+  .material-choice { gap: 12px; }
+  #materialMode button { padding-inline: 20px; }
+  .wood-catalog { grid-template-columns: 1fr; }
+  .wood-catalog .preset { min-height: 110px; padding: 20px 44px 20px 20px; }
+  .stock-fields { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px 14px; }
+  .wood-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .stock-fields .stepper button { flex-basis: 27px; }
+  .stock-fields .size-name { min-height: 38px; }
+  .wood-layouts { max-height: 600px; padding-inline: 18px; }
 }
