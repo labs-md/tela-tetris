@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TelaTetris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1c1c1c;
+    --panel: #242424;
+    --panel-2: #2c2c2c;
+    --line: #3a3a3a;
+    --text: #f2f2ee;
+    --muted: #a3a39c;
+    --lime: #e9fb5a;
+    --orange: #ff5a00;
+    --purple: #c6b3e4;
+    --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --serif: Newsreader, Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  .top {
+    display: flex; align-items: center; justify-content: space-between; gap: 24px;
+    padding: 18px 28px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .logo { font-weight: 800; font-size: 30px; letter-spacing: -0.04em; color: var(--lime); }
+  .tag { font-family: var(--serif); font-size: 20px; color: var(--text); }
+  .tag em { color: var(--lime); }
+
+  .order { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .order .lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .sizes { display: flex; gap: 8px; }
+  .size {
+    display: flex; align-items: center; gap: 2px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 3px;
+  }
+  .size b { width: 26px; text-align: center; font-size: 13px; color: var(--lime); }
+  .size span { min-width: 18px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .size button {
+    width: 26px; height: 26px; border: 0; border-radius: 7px; background: var(--panel-2);
+    font-size: 16px; line-height: 1;
+  }
+  .size button:hover { background: #393939; }
+  .size button:disabled { opacity: 0.35; cursor: default; }
+  .meta { font-size: 13px; color: var(--muted); }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px;
+    padding: 22px 28px 28px;
+  }
+  .stage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stage-head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+  .stage-head p { margin: 0; color: var(--muted); font-size: 14px; }
+  .canvas-wrap { position: relative; width: 100%; }
+  canvas#board { display: block; width: 100%; touch-action: none; user-select: none; }
+  .keys { margin-top: 14px; display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+  kbd {
+    display: inline-block; min-width: 22px; padding: 2px 6px; margin-right: 4px;
+    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+    background: var(--panel); color: var(--text); font: 600 12px var(--sans); text-align: center;
+  }
+
+  .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .card h2 {
+    margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .queue { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .queue button {
+    position: relative; height: 74px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--panel-2); padding: 0; display: grid; place-items: center;
+  }
+  .queue button:hover { border-color: var(--lime); }
+  .queue button.first { border-color: #6b6b5a; }
+  .queue canvas { width: 100%; height: 100%; display: block; }
+  .queue .more { color: var(--muted); font-size: 13px; font-weight: 600; cursor: default; }
+  .queue .more:hover { border-color: var(--line); }
+  .queue-empty { color: var(--muted); font-size: 14px; grid-column: 1 / -1; padding: 8px 0; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
+  .stat .k { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+  .stat .v { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .stat .v.low { color: var(--orange); animation: blink 1s steps(2, start) infinite; }
+  @keyframes blink { 50% { opacity: 0.55; } }
+  .stat .v small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px;
+    padding: 11px 12px; font-weight: 600; font-size: 14px;
+  }
+  .btn:hover:not(:disabled) { border-color: #5a5a5a; background: #333; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.wide { grid-column: 1 / -1; }
+  .btn.primary { background: var(--lime); color: #151515; border-color: var(--lime); font-weight: 800; font-size: 16px; padding: 14px; }
+  .btn.primary:hover:not(:disabled) { background: #f3ff8a; border-color: #f3ff8a; }
+  .btn.primary.ready { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(233, 251, 90, 0.55); } 50% { box-shadow: 0 0 0 10px rgba(233, 251, 90, 0); } }
+  .hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; line-height: 1.45; }
+
+  .progress { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin: 10px 0 12px; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--lime); border-radius: 99px; }
+  .solve-line { font-size: 14px; color: var(--muted); margin: 4px 0; font-variant-numeric: tabular-nums; }
+  .solve-line b { color: var(--text); }
+
+  .saved .k { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .saved .big { font-size: 64px; line-height: 1; font-weight: 800; letter-spacing: -0.05em; color: var(--lime); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .saved .big small { font-size: 28px; letter-spacing: -0.02em; margin-left: 4px; }
+  .saved .pct { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; color: var(--lime); font-variant-numeric: tabular-nums; }
+  .saved.lose .big, .saved.lose .pct { color: var(--orange); }
+  .saved .note { font-family: var(--serif); font-style: italic; font-size: 16px; margin-top: 8px; color: var(--text); }
+  .badge {
+    display: inline-block; margin-top: 10px; background: var(--lime); color: #151515;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 99px;
+  }
+  .saved.lose .badge { background: var(--orange); }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  table.cmp th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 0 0 6px; }
+  table.cmp th:not(:first-child), table.cmp td:not(:first-child) { text-align: right; }
+  table.cmp td { padding: 7px 0; border-top: 1px solid var(--line); }
+  table.cmp tr.me td:first-child { color: var(--text); }
+  table.cmp tr.tt td { color: var(--lime); font-weight: 700; }
+  table.cmp tr.ref td { color: var(--muted); }
+
+  .checks { display: grid; grid-template-columns: 1fr auto auto; gap: 8px 14px; align-items: center; font-size: 14px; }
+  .checks .h { font-size: 11px; color: var(--muted); font-weight: 600; text-align: center; }
+  .ok, .bad { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; justify-self: center; }
+  .ok { background: var(--lime); color: #151515; }
+  .bad { background: var(--orange); color: #151515; }
+
+  .foot { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+  .toast {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+    background: var(--orange); color: #151515; font-weight: 700; font-size: 14px;
+    padding: 8px 14px; border-radius: 99px; opacity: 0; transition: opacity 0.15s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; padding: 16px; }
+    .top { padding: 14px 16px; }
+    .keys { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">TelaTetris</span>
+    <span class="tag">El mismo pedido, <em>menos tela.</em></span>
+  </div>
+  <div class="order">
+    <span class="lbl">Pedido</span>
+    <div class="sizes" id="sizes"></div>
+    <span class="meta" id="orderMeta"></span>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage">
+    <div class="stage-head">
+      <h1 id="stageTitle">Tu turno: acomoda el pedido</h1>
+      <p id="stageSub">Gana el tendido que use menos rollo.</p>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="board"></canvas>
+      <div class="toast" id="toast"></div>
+    </div>
+    <div class="keys" id="keys">
+      <span><kbd>Clic</kbd>colocar / levantar</span>
+      <span><kbd>Espacio</kbd>deslizar al inicio del rollo</span>
+      <span><kbd>R</kbd>girar 180°</span>
+      <span><kbd>←↑↓→</kbd>mover 1 cm (<kbd>Shift</kbd>5 cm)</span>
+      <span><kbd>C</kbd>siguiente pieza</span>
+      <span><kbd>Z</kbd>deshacer</span>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div id="playPanel" class="side">
+      <div class="card">
+        <h2>Siguiente</h2>
+        <div class="queue" id="queue"></div>
+      </div>
+      <div class="card">
+        <div class="stats">
+          <div class="stat"><div class="k">Piezas</div><div class="v" id="sPieces">0</div></div>
+          <div class="stat"><div class="k">Tiempo</div><div class="v" id="sTime">1:30</div></div>
+          <div class="stat"><div class="k">Rollo usado</div><div class="v" id="sLen">0<small>cm</small></div></div>
+          <div class="stat"><div class="k">Desperdicio</div><div class="v" id="sWaste">–</div></div>
+        </div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="bRotate">Girar 180°</button>
+        <button class="btn" id="bUndo">Deshacer</button>
+        <button class="btn wide" id="bShelf">Completar por estantes (como hoy)</button>
+        <button class="btn primary wide" id="bFinish" hidden>TelaTetris empieza en 3…</button>
+      </div>
+      <p class="hint">Tienes 1:30 desde que mueves la primera pieza. Al colocar la última pieza (o al acabarse el tiempo), TelaTetris toma tu tendido y lo reacomoda. Las piezas mantienen el hilo: solo giran 0° o 180°. Entre piezas queda 1 cm de separación de corte.</p>
+    </div>
+
+    <div id="solvePanel" class="side" hidden>
+      <div class="card">
+        <h2>TelaTetris reacomoda tus piezas</h2>
+        <div class="progress"><i id="solveBar"></i></div>
+        <p class="solve-line">Órdenes probados: <b id="solveIters">0</b></p>
+        <p class="solve-line">Tu tendido: <b id="solveHuman">–</b></p>
+        <p class="solve-line">TelaTetris: <b id="solveBest">–</b></p>
+      </div>
+      <p class="foot">Cada pieza se desliza sobre el rollo y se mide cuánto encaja con lo que ya está puesto (correlación cruzada normalizada). Gana la posición más ajustada sin traslape.</p>
+    </div>
+
+    <div id="resultPanel" class="side" hidden>
+      <div class="card saved" id="savedCard"></div>
+      <div class="card">
+        <h2>Comparación</h2>
+        <table class="cmp" id="cmpTable"></table>
+      </div>
+      <div class="card">
+        <h2>Validador</h2>
+        <div class="checks" id="checks"></div>
+      </div>
+      <div class="btns">
+        <button class="btn primary wide" id="bAgain">Jugar otra vez</button>
+      </div>
+      <p class="foot">Método: Meng et al., 2025, <i>Scientific Reports</i>, doi:10.1038/s41598-025-97202-0, con búsqueda del orden de piezas.</p>
+    </div>
+  </aside>
+</main>
+
+<script src="engine.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
