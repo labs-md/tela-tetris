@@ -182,7 +182,7 @@ Cards use panel charcoal, square divider borders, and white pixel headings led b
 
 ### Board and results
 
-The beveled canvas frame contains the cloth grid, real garment outlines, ruler, and labeled cut lines. Yellow and orange distinguish algorithm and player comparison marks. The results card enlarges the money saved in GTQ, then yards saved, the saving over 1,000 orders and per T-shirt. The saved stretch of roll on the board is labeled with its cost. The comparison table lists yards to buy and cost, and aligns numeric columns to the right, shows the player row in orange, and highlights the TelaTetris row in yellow. A primary button starts another round.
+The beveled canvas frame contains the cloth grid, real garment outlines, ruler, and labeled cut lines. Yellow and orange distinguish algorithm and player comparison marks. On the result the savings are the only message. The app enters a result mode that hides the side panel, HUD stats, stage heading and key legend, so the stage runs full width. A savings banner takes about 55% of its height: a yellow slab (orange when the player wins) with "En 1,000 compras como esta, TelaTetris te ahorra", the 1,000-purchase amount in the largest pixel type on screen (counting up, shrunk to fit), and a single line with this purchase's saving and yards; a black side with two fabric-cost bars (player orange, TelaTetris yellow), the price per yard, and the "Jugar otra vez" button. The board takes the remaining height at 85% opacity, showing TelaTetris's layout with the saved stretch labeled in yards ("menos tela").
 
 ### Start screen
 
@@ -195,15 +195,23 @@ The intro plays on load (skip with `?intro=0`) and again from the "¿Cómo?" but
 1. The order card is in focus and the largest size's card pulses. Its T-shirt rises out of the card to the middle of the stage.
 2. The shirt bursts into its six pieces, sleeves unfolding. The pieces carry no labels; the call-out names them.
 3. The piece bank is in focus. Each piece flies in an arc into its tile, and the tile pops in when the piece lands. Then the rest of the bank cascades in.
-4. The roll is in focus: "Acomódalas en el rollo", then "¿LISTOS?" and "¡YA!", and the round starts.
+4. The roll is in focus: "Acomódalas en el rollo".
+5. The **Controles** card slams in (yellow border, orange offset shadow) with two columns, "Teclado y mouse" and "Control", whose rows slide in one after another. The column for the input in use has a yellow border; the controller column says "✓ Control conectado" once a controller is pressed. The journey pauses on it until "OK · ¡A jugar!" (Enter, Space, click, A or Start).
+6. "¿LISTOS?" and "¡YA!", and the round starts.
 
-Any click or Space, Enter, or Escape skips to a short "¡YA!".
+Pacing is set for reading: captions hold 2–2.6 s and type their subline over 0.75 s; the shirt flies for 1 s, bursts over 0.8 s, and pieces land 0.15 s apart over 0.9 s each. In-game call-outs hold 1.4–2.4 s, the review lasts 4.5 s and the rearrangement about 4.3 s.
+
+Any click, Space, Enter, Escape or controller button skips ahead to the Controles card; it is never skipped, except with `?intro=0`.
 
 ### Call-outs
 
 Fighting-game style announcer text draws on the same overlay, in Press Start 2P, sheared like italics, with a thick black outline, an offset drop layer, and a white-to-color gloss. Words zoom in from about 3× size, shake and flash white on impact, then leave. Captions sit on a slanted black band that slides across the stage, with a typewriter subline. Big call-outs fill the stage center; "¡YA!", "¡AHORRO!" and "¡GANASTE!" add a radial burst. Small pops rise from a point on the board.
 
 Call-outs: the intro captions, ¡10 SEGUNDOS!, ¡TIEMPO!, ¡COMPLETO!, TURNO DE TELATETRIS, ¡AHORRO! / ¡EMPATE! / ¡GANASTE!, and ¡PLAYERA M! when a T-shirt's pieces are all on the roll.
+
+### Key legend
+
+The one-line legend under the board shows keyboard keys by default and switches to controller buttons (✚/stick, A, X, R1/R2, L1/L2, Y, B) once a controller is pressed, using the same `kbd` key caps.
 
 ### Motion and feedback
 

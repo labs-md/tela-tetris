@@ -38,33 +38,35 @@ TelaTetris is the name and brand of the demo. Underneath, it is a connector for 
 ## How a round goes
 
 0. **Start screen.** A pixel T-shirt floats and turns above "Empieza a ahorrar con TelaTetris" and an "Empezar" button (or Space/Enter).
-1. **Intro (about 7 s).** The order card's T-shirt rises onto the stage, comes apart into its six pieces, and the pieces fly into the piece bank, whose tiles pop in as they land. Then "¿LISTOS? ¡YA!" and the round begins. Any click or Space, Enter, or Escape skips it. Add `?intro=0` to the URL to skip the start screen and the intro; the "¿Cómo?" button replays it before a round starts.
+1. **Intro (about 10 s, paced for reading).** The order card's T-shirt rises onto the stage, comes apart into its six pieces, and the pieces fly into the piece bank, whose tiles pop in as they land. Then the **Controles** screen shows the keyboard and controller controls side by side, with the controller column highlighted once one is connected, and waits for **OK** (Enter, Space, a click, or A/Start). "¿LISTOS? ¡YA!" follows and the round begins. Skipping (a click, Space, Enter, Esc or any controller button) jumps to the controls screen, not past it. Add `?intro=0` to the URL to skip the start screen and the intro; the "¿Cómo?" button replays it before a round starts.
 2. **Your turn (1:30).** Pieces arrive in a queue. Place them on a 150 cm roll. The cut line and the waste update live. The clock starts on the first interaction. It turns orange at 15 s, and a warning appears at 10 s. When time runs out, the remaining pieces are laid out in shelves after your cut line, so the comparison always covers the full order, and "¡Se acabó el tiempo!" shows before TelaTetris's turn.
-3. **Your result.** When the last piece is placed, your roll length, the yards to buy and their cost show for 3.5 s. The algorithm searches in the background meanwhile. Undo (or clicking a piece) cancels this and returns you to your turn. The button or Enter skips the countdown.
+3. **Your result.** When the last piece is placed, your roll length, the yards to buy and their cost show for 4.5 s. The algorithm searches in the background meanwhile. Undo (or clicking a piece) cancels this and returns you to your turn. The button or Enter skips the countdown.
 4. **TelaTetris's turn.** Your own pieces fly one by one, on the same roll, to where the algorithm puts them.
-5. **Result.** Money saved in GTQ: the cost of the fabric your layout needs minus the cost of TelaTetris's, plus the yards saved, the saving over 1,000 identical orders and per T-shirt. A table compares yards to buy and cost for you, TelaTetris and the shelf layout. Both layouts are validated internally.
+5. **Result.** One message: the savings at scale. Everything else steps aside (side panel, HUD stats, stage title and key legend are hidden). A banner takes the larger share of the stage with "En 1,000 compras como esta, TelaTetris te ahorra" and the amount in large type, counting up, then one line with this purchase's saving and the yards saved. Beside it, two bars compare the fabric cost of your layout and TelaTetris's, and "Jugar otra vez" (Enter). TelaTetris's layout stays below, smaller and slightly dimmed, with the saved stretch of roll marked in yards. Both layouts are validated internally.
 
 ## Controls
 
-The whole game can be played from the keyboard.
+The whole game can be played from the keyboard or a game controller.
 
-| Action | Mouse / touch | Keyboard |
-|---|---|---|
-| Start (start screen) | Empezar | Space / Enter |
-| Skip the intro | click | Space / Enter / Esc |
-| Move piece | move / drag | arrows (Shift = 5 cm) |
-| Place | click / release | Enter |
-| Slide to the start of the roll and place | n/a | Space |
-| Rotate 90° clockwise | right-click, wheel (one turn per notch), button | R |
-| Pick a piece type (press again for the next size) | click a bank tile | 1 Delantero · 2 Espalda · 3 Manga · 4 Cuello · 5 Bolsillo |
-| Next piece | click a bank tile | C |
-| Pick up a placed piece | click it | Z picks up the last one |
-| Undo | button | Z / Backspace |
-| Skip the review countdown | button | Enter |
-| Skip TelaTetris's rearrangement | n/a | Enter / Space |
-| Play again | Jugar otra vez | Enter / Space |
-| Sound on / off | header button | M |
-| Replay the intro | ¿Cómo? | H |
+| Action | Mouse / touch | Keyboard | Controller |
+|---|---|---|---|
+| Start (start screen) | Empezar | Space / Enter | any button |
+| Skip the intro | click | Space / Enter / Esc | any button |
+| Move piece | move / drag | arrows (Shift = 5 cm) | D-pad (1 cm, repeats while held, 3 cm after a second) or left stick (faster the further you push) |
+| Place | click / release | Enter | A / ✕ |
+| Slide to the start of the roll and place | n/a | Space | X / □ |
+| Rotate 90° clockwise | right-click, wheel (one turn per notch), button | R | R1 or R2 |
+| Pick a piece type (press again for the next size) | click a bank tile | 1 Delantero · 2 Espalda · 3 Manga · 4 Cuello · 5 Bolsillo | L1 next type, L2 previous type |
+| Next piece | click a bank tile | C | Y / △ |
+| Pick up a placed piece | click it | Z picks up the last one | B / ○ picks up the last one |
+| Undo | button | Z / Backspace | B / ○ |
+| Skip the review countdown | button | Enter | A or Start |
+| Skip TelaTetris's rearrangement | n/a | Enter / Space | any button |
+| Play again | Jugar otra vez | Enter / Space | A or Start |
+| Sound on / off | header button | M | Select / Share |
+| Replay the intro | ¿Cómo? | H | n/a |
+
+Controllers use the browser Gamepad API with the standard layout, so Xbox, PlayStation and Switch Pro controllers work over USB or Bluetooth. Browsers only report a controller after one of its buttons is pressed; the first press on the start screen does that and starts the game. Once a controller is in use, the key legend under the board shows its buttons, and controllers that support it rumble on placements, bad drops and finished T-shirts.
 
 Buttons work with Tab and Enter/Space too: while a button has keyboard focus it keeps Enter and Space, and Esc hands the keyboard back to the board. The order steppers keep focus when the order changes. After a mouse click a button gives up focus, so Space and Enter go straight back to the game.
 
@@ -74,7 +76,7 @@ Buttons work with Tab and Enter/Space too: while a button has keyboard focus it 
 
 - `garments.js` turns the order on screen into a protocol request (`Garments.request(counts)`). Each piece is an item keyed `<piece>-<size>-<garment>`, with its name and color in `data`.
 - `game.js` opens `Arrange.session(request)` when the order changes. While you play, it uses `session.problem` for live checks: does the piece fit here, where does Space slide it, lay the rest out by shelves.
-- During the 3.5 s review it calls `session.step(20)` between frames, then `session.result()` for the engine's layout.
+- During the 4.5 s review it calls `session.step(20)` between frames, then `session.result()` for the engine's layout.
 - `Garments.purchase(length)` turns each response's `length` (cm of roll) into `{ yards, gtq }`. That's the purchasing step.
 - Your layout is scored with `session.evaluate(...)`, by the same rules and in the same response format as the engine's. Both responses still check bounds, overlaps, allowed rotations, and completeness. The results screen shows the comparison without a validator panel.
 

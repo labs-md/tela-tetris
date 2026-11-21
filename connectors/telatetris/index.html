@@ -204,7 +204,11 @@
     box-shadow: 0 0 0 2px var(--black), 0 0 0 4px var(--line);
   }
   canvas#board { display: block; width: 100%; touch-action: none; user-select: none; }
-  .keys { display: flex; gap: 6px 16px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+  .keys { display: flex; gap: 6px 14px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+  .keys .legend { display: contents; }
+  .keys .legend.pad, .pad-on .keys .legend.kb { display: none; }
+  .pad-on .keys .legend.pad { display: contents; }
+  .qhead .qk { display: block; margin: 0 auto 3px; font: 400 7px/1 var(--pixel); color: var(--yellow); }
   kbd {
     display: inline-block; min-width: 20px; padding: 1px 5px; margin-right: 4px;
     border: 2px solid var(--line); border-bottom-width: 4px;
@@ -250,6 +254,107 @@
   table.cmp tr.ref td { color: var(--muted); }
   .foot { color: var(--dim); font-size: 11px; line-height: 1.5; margin: 0; }
   .cmp-note { color: var(--dim); font-size: 11px; margin: 8px 0 0; }
+
+
+  /* --------------------------------------------- savings banner (result) --- */
+  .hero {
+    flex: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    border: 3px solid var(--yellow); box-shadow: 6px 6px 0 var(--orange);
+    animation: card-in 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  }
+  .hero-main { background: var(--yellow); color: var(--black); padding: 16px 22px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .hero-k { font: 400 clamp(10px, 0.95vw, 13px)/1.5 var(--pixel); text-transform: uppercase; }
+  .hero-big {
+    font: 400 clamp(40px, 5.4vw, 86px)/1.1 var(--pixel); margin: 10px 0 8px; white-space: nowrap;
+    font-variant-numeric: tabular-nums; text-shadow: 4px 4px 0 rgba(28, 28, 27, 0.2);
+  }
+  .hero-sub { font: 700 14px/1.4 var(--sans); color: var(--olive); }
+  .hero-side { background: var(--black); padding: 14px 18px; display: grid; gap: 14px; align-content: center; min-width: 0; }
+  .hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .hero-stats div { border-left: 3px solid var(--yellow); padding-left: 10px; min-width: 0; animation: row-in 0.35s ease-out both; }
+  .hero-stats div:nth-child(2) { animation-delay: 0.12s; }
+  .hero-stats div:nth-child(3) { animation-delay: 0.24s; }
+  .hero-stats b { display: block; font: 400 clamp(12px, 1.25vw, 18px)/1.5 var(--pixel); color: var(--yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero-stats span { display: block; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .hb-title { font: 400 8px/1.6 var(--pixel); color: var(--muted); text-transform: uppercase; }
+  .hbar { display: grid; grid-template-columns: 104px minmax(0, 1fr) 82px; align-items: center; gap: 10px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+  .hb-name { white-space: nowrap; }
+  .hb-track { height: 14px; background: var(--panel-2); }
+  .hb-track i { display: block; height: 100%; width: var(--w); background: var(--dim); animation: bar-grow 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) 0.35s both; }
+  .hbar.ref i { animation-delay: 0.5s; }
+  .hbar.tt i { animation-delay: 0.7s; }
+  .hbar.me i { background: var(--orange); }
+  .hbar.tt i { background: var(--yellow); }
+  .hbar.me .hb-name, .hbar.me .hb-val { color: var(--orange); font-weight: 700; }
+  .hbar.tt .hb-name, .hbar.tt .hb-val { color: var(--yellow); font-weight: 700; }
+  .hb-val { text-align: right; font-variant-numeric: tabular-nums; }
+  @keyframes bar-grow { from { width: 0; } }
+  .hero.lose { border-color: var(--orange); box-shadow: 6px 6px 0 var(--yellow); }
+  .hero.lose .hero-main { background: var(--orange); }
+  .hero.lose .hero-sub { color: var(--black); }
+  .hero.lose .hero-stats div { border-color: var(--orange); }
+  .hero.lose .hero-stats b { color: var(--orange); }
+  @media (min-width: 981px) and (max-height: 720px) {
+    .hero-main { padding: 10px 16px; }
+    .hero-big { font-size: clamp(30px, 4.2vw, 60px); margin: 6px 0 4px; }
+    .hero-side { padding: 10px 14px; gap: 8px; }
+    .hbar { margin-top: 3px; }
+  }
+  @media (max-width: 980px) { .hero { grid-template-columns: 1fr; } }
+
+  /* result: savings only, with the layout below */
+  .result-mode .layout { grid-template-columns: minmax(0, 1fr); }
+  .result-mode .side, .result-mode .stage-head, .result-mode .keys { display: none; }
+  .result-mode .hero { grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); }
+  .result-mode .hero-main { padding: 22px 30px; }
+  .result-mode .hero-k { font-size: clamp(11px, 1.1vw, 15px); }
+  .result-mode .hero-big { font-size: clamp(52px, 7.4vw, 124px); margin: 12px 0 10px; }
+  .result-mode .hero-sub { font-size: 15px; }
+  .result-mode .hero-side { gap: 16px; padding: 18px 22px; }
+  .result-mode .canvas-wrap { opacity: 0.85; }
+  .hero-note { margin: 6px 0 0; font-size: 11px; color: var(--dim); }
+  .hero-again { width: 100%; }
+  @media (min-width: 981px) and (min-height: 560px) {
+    /* the banner takes the larger share of the stage; the layout gets the rest */
+    .result-mode .hero { flex: 1.25 1 0; min-height: 0; }
+    .result-mode .canvas-wrap { flex: 1 1 0; }
+    .result-mode .hero-big { font-size: clamp(56px, 9vw, 156px); }
+  }
+  @media (min-width: 981px) and (max-height: 720px) {
+    .result-mode .hero-big { font-size: clamp(44px, 7vw, 110px); margin: 8px 0 6px; }
+    .result-mode .hero-main { padding: 14px 22px; }
+  }
+
+  /* ------------------------------------------------------ controls screen --- */
+  .controls { position: fixed; inset: 0; z-index: 46; display: grid; place-items: center; padding: 16px; overflow: auto; }
+  .controls-card {
+    width: min(880px, 100%); background: var(--black); border: 3px solid var(--yellow);
+    box-shadow: 8px 8px 0 var(--orange); padding: 22px 26px 20px; text-align: center;
+    animation: card-in 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  }
+  .controls-title { margin: 0; font: 400 clamp(18px, 2.2vw, 28px)/1.3 var(--pixel); color: var(--yellow); text-transform: uppercase; text-shadow: 3px 3px 0 var(--orange); transform: skewX(-8deg); }
+  .controls-sub { margin: 8px 0 16px; color: var(--muted); font-size: 14px; }
+  .controls-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; text-align: left; }
+  .controls-col { border: 2px solid var(--line); background: var(--panel); padding: 12px 14px; }
+  .controls-col h3 { margin: 0 0 10px; font: 400 10px/1.4 var(--pixel); text-transform: uppercase; color: var(--text); }
+  .controls-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .controls-col li {
+    display: grid; grid-template-columns: 116px 1fr; align-items: center; gap: 10px; font-size: 13px; color: var(--muted);
+    animation: row-in 0.35s ease-out both; animation-delay: calc(0.25s + var(--i) * 0.06s);
+  }
+  .controls-col li .caps { color: var(--dim); white-space: nowrap; }
+  .controls-col li span:last-child { color: var(--text); }
+  .controls-note { margin: 10px 0 0; font-size: 11px; color: var(--dim); }
+  .pad-status .on, .pad-on .pad-status .off { display: none; }
+  .pad-on .pad-status .on { display: inline; color: var(--yellow); font-weight: 700; }
+  .pad-on .controls-col.pad, body:not(.pad-on) .controls-col.kb { border-color: var(--yellow); }
+  .controls-ok { margin-top: 18px; padding: 16px 36px; font-size: 12px; animation: row-in 0.35s ease-out 0.8s both, start-throb 1.2s steps(2) 1.4s infinite; }
+  .controls-hint { margin: 10px 0 0; color: var(--dim); font-size: 12px; }
+  .controls.leaving .controls-card { animation: card-out 0.26s ease-in forwards; }
+  @keyframes card-in { from { opacity: 0; transform: scale(0.4) skewX(-12deg); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+  @keyframes card-out { to { opacity: 0; transform: scale(1.12); } }
+  @keyframes row-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+  @media (max-width: 640px) { .controls-cols { grid-template-columns: 1fr; } .controls-col li { grid-template-columns: 96px 1fr; } }
 
   /* --------------------------------------------------------- start screen --- */
   .start {
@@ -326,7 +431,7 @@
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
 <header class="top">
   <div class="brand">
     <svg viewBox="0 0 11 9" shape-rendering="crispEdges" aria-hidden="true"><g fill="#E8FB5B"><rect x="2" width="3" height="1"/><rect x="6" width="3" height="1"/><rect x="1" y="1" width="9" height="1"/><rect y="2" width="11" height="2"/><rect y="4" width="2" height="1"/><rect x="3" y="4" width="5" height="5"/><rect x="9" y="4" width="2" height="1"/></g><rect x="6" y="5" width="1" height="1" fill="#F95300"/></svg>
@@ -360,9 +465,9 @@
       </div>
       <div class="btns">
         <button class="btn" id="bRotate" title="Un cuarto de vuelta a la derecha (R)">Girar 90°</button>
-        <button class="btn" id="bUndo">Deshacer</button>
+        <button class="btn" id="bUndo" title="Deshacer (Z)">Deshacer</button>
         <button class="btn wide" id="bShelf">Completar por estantes (como hoy)</button>
-        <button class="btn primary wide" id="bFinish" hidden>TelaTetris empieza en 3…</button>
+        <button class="btn primary wide" id="bFinish" hidden title="Empezar ya (Enter)">TelaTetris empieza en 3…</button>
       </div>
     </div>
 
@@ -378,14 +483,13 @@
     </div>
 
     <div id="resultPanel" class="panel" hidden>
-      <div class="card saved" id="savedCard"></div>
       <div class="card">
-        <h2><span class="n">5</span>Comparación</h2>
+        <h2><span class="n">5</span>Detalle de la compra</h2>
         <table class="cmp" id="cmpTable"></table>
         <p class="cmp-note" id="cmpNote"></p>
       </div>
       <div class="btns">
-        <button class="btn primary wide" id="bAgain">Jugar otra vez</button>
+        <button class="btn primary wide" id="bAgain">Jugar otra vez <kbd>Enter</kbd></button>
       </div>
       <p class="foot">Método: Meng et al., 2025, <i>Scientific Reports</i>, doi:10.1038/s41598-025-97202-0, con búsqueda del orden de piezas.</p>
     </div>
@@ -404,22 +508,72 @@
         <div class="stat"><div class="k">Desperdicio</div><div class="v" id="sWaste">–</div></div>
       </div>
     </div>
+    <div class="hero" id="hero" hidden aria-live="polite"></div>
     <div class="canvas-wrap" id="canvasWrap">
       <canvas id="board"></canvas>
       <div class="toast" id="toast" role="status"></div>
     </div>
     <div class="keys" id="keys">
-      <span><kbd>Clic</kbd>colocar</span>
-      <span><kbd>Espacio</kbd>deslizar</span>
-      <span><kbd>R</kbd>girar 90° a la derecha</span>
-      <span><kbd>←↑↓→</kbd>mover 1 cm (<kbd>Shift</kbd>5)</span>
-      <span><kbd>C</kbd>siguiente</span>
-      <span><kbd>Z</kbd>deshacer</span>
+      <div class="legend kb">
+        <span><kbd>←↑↓→</kbd>mover (<kbd>Shift</kbd>5 cm)</span>
+        <span><kbd>Enter</kbd>colocar</span>
+        <span><kbd>Espacio</kbd>deslizar</span>
+        <span><kbd>R</kbd>girar 90°</span>
+        <span><kbd>1</kbd>–<kbd>5</kbd>pieza</span>
+        <span><kbd>C</kbd>siguiente</span>
+        <span><kbd>Z</kbd>deshacer</span>
+      </div>
+      <div class="legend pad">
+        <span><kbd>✚</kbd>/<kbd>stick</kbd>mover</span>
+        <span><kbd>A</kbd>colocar</span>
+        <span><kbd>X</kbd>deslizar</span>
+        <span><kbd>R1</kbd>/<kbd>R2</kbd>girar 90°</span>
+        <span><kbd>L1</kbd>/<kbd>L2</kbd>pieza</span>
+        <span><kbd>Y</kbd>siguiente</span>
+        <span><kbd>B</kbd>deshacer</span>
+      </div>
     </div>
   </section>
 </main>
 </div>
 <canvas id="fx" aria-hidden="true"></canvas>
+
+<section class="controls" id="controls" hidden aria-labelledby="controlsTitle">
+  <div class="controls-card">
+    <h2 class="controls-title" id="controlsTitle">Controles</h2>
+    <p class="controls-sub">Acomoda todas las piezas en el rollo. Gana el tendido más corto.</p>
+    <div class="controls-cols">
+      <div class="controls-col kb">
+        <h3>Teclado y mouse</h3>
+        <ul>
+          <li style="--i:0"><span class="caps"><kbd>←↑↓→</kbd></span><span>mover · <kbd>Shift</kbd> 5 cm</span></li>
+          <li style="--i:1"><span class="caps"><kbd>Enter</kbd></span><span>colocar</span></li>
+          <li style="--i:2"><span class="caps"><kbd>Espacio</kbd></span><span>deslizar al inicio</span></li>
+          <li style="--i:3"><span class="caps"><kbd>R</kbd></span><span>girar 90° a la derecha</span></li>
+          <li style="--i:4"><span class="caps"><kbd>1–5</kbd></span><span>elegir pieza</span></li>
+          <li style="--i:5"><span class="caps"><kbd>C</kbd></span><span>siguiente pieza</span></li>
+          <li style="--i:6"><span class="caps"><kbd>Z</kbd></span><span>deshacer</span></li>
+        </ul>
+        <p class="controls-note">Con el mouse: mueve, clic para colocar, clic derecho o rueda para girar.</p>
+      </div>
+      <div class="controls-col pad">
+        <h3>Control</h3>
+        <ul>
+          <li style="--i:7"><span class="caps"><kbd>✚</kbd> / <kbd>stick</kbd></span><span>mover</span></li>
+          <li style="--i:8"><span class="caps"><kbd>A</kbd></span><span>colocar</span></li>
+          <li style="--i:9"><span class="caps"><kbd>X</kbd></span><span>deslizar al inicio</span></li>
+          <li style="--i:10"><span class="caps"><kbd>R1</kbd> / <kbd>R2</kbd></span><span>girar 90° a la derecha</span></li>
+          <li style="--i:11"><span class="caps"><kbd>L1</kbd> / <kbd>L2</kbd></span><span>elegir pieza</span></li>
+          <li style="--i:12"><span class="caps"><kbd>Y</kbd></span><span>siguiente pieza</span></li>
+          <li style="--i:13"><span class="caps"><kbd>B</kbd></span><span>deshacer</span></li>
+        </ul>
+        <p class="controls-note pad-status"><span class="off">Conecta un control y presiona cualquier botón.</span><span class="on">✓ Control conectado</span></p>
+      </div>
+    </div>
+    <button class="btn primary controls-ok" id="bOk">OK · ¡A jugar!</button>
+    <p class="controls-hint"><kbd>Enter</kbd> o <kbd>A</kbd> para empezar</p>
+  </div>
+</section>
 
 <section class="start" id="start" hidden aria-labelledby="startTitle">
   <div class="start-inner">
@@ -431,14 +585,14 @@
     <h1 class="start-title" id="startTitle">Empieza a ahorrar<br>con <em>TelaTetris</em></h1>
     <p class="start-sub">Dinos cuántas playeras vas a hacer y te decimos cuántas yardas de tela comprar. Acomoda las piezas en el rollo y mira cuántos quetzales ahorras.</p>
     <button class="btn primary start-btn" id="bStart">▶ Empezar</button>
-    <p class="start-hint"><kbd>Espacio</kbd> para empezar · <kbd>M</kbd> sonido</p>
+    <p class="start-hint"><kbd>Espacio</kbd> o cualquier botón del control para empezar · <kbd>M</kbd> sonido</p>
   </div>
 </section>
 
 <!-- Bump ?v= when the scripts change, so a cached old script never runs with this page. -->
-<script src="../../arrange/arrange.js?v=5"></script>
-<script src="garments.js?v=5"></script>
+<script src="../../arrange/arrange.js?v=11"></script>
+<script src="garments.js?v=11"></script>
 <script src="score-events.js?v=2"></script>
-<script src="game.js?v=7"></script>
+<script src="game.js?v=11"></script>
 </body>
 </html>

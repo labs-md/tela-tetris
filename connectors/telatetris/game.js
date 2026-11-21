@@ -14,9 +14,9 @@
   const ROLL_W = 150;        // roll width, cm
   const TURN_MS = 90000;     // player's time limit (starts on first interaction)
   const GAP = 1;             // cutting gap, cm
-  const REVIEW_MS = 3500;    // player's result on screen; algorithm searches meanwhile
-  const MOVE_MS = 700;       // flight time of one piece
-  const MOVE_TOTAL_MS = 3200; // target length of the whole rearrangement
+  const REVIEW_MS = 4500;    // player's result on screen; algorithm searches meanwhile
+  const MOVE_MS = 950;       // flight time of one piece
+  const MOVE_TOTAL_MS = 4300; // target length of the whole rearrangement
   const MAX_PER_SIZE = 4;
 
   // Labs palette (labs.gt) plus the warm darks of the cabinet.
@@ -111,7 +111,13 @@
       },
     };
   })();
-  const sfx = (name, ...args) => { try { Sound.fx[name](...args); } catch (e) { /* audio is optional */ } };
+  // A controller in use also feels placements, bad drops and finished shirts.
+  let padActive = false;
+  const RUMBLE = { place: [40, 0.1, 0.35], bad: [120, 0.6, 0.3], shirt: [240, 0.35, 0.7], go: [120, 0.3, 0.5] };
+  const sfx = (name, ...args) => {
+    try { Sound.fx[name](...args); } catch (e) { /* audio is optional */ }
+    if (padActive && RUMBLE[name]) rumble(...RUMBLE[name]);
+  };
 
   // ----------------------------------------------------- T-shirt model ---
   // One T-shirt drawn from its real pattern pieces. Poses are in cm around the
@@ -400,7 +406,7 @@
       const of = counts[size];
       const r = canvas.getBoundingClientRect();
       shout(`¡PLAYERA ${size}!`, {
-        kind: 'pop', size: 16, dur: 1300, sub: of > 1 ? `lista · ${done} de ${of}` : 'lista',
+        kind: 'pop', size: 16, dur: 1900, sub: of > 1 ? `lista · ${done} de ${of}` : 'lista',
         x: r.left + view.ox + (at.x + piece.w / 2) * view.s, y: r.top + view.oy + (at.y + piece.h / 2) * view.s,
       });
       sfx('shirt');
@@ -538,7 +544,7 @@
     G.autoIds = new Set(ids);
     if (ids.length) fillShelves(false);
     sfx('timeUp');
-    shout('¡TIEMPO!', { kind: 'big', color: COL.orange, dur: 1100 });
+    shout('¡TIEMPO!', { kind: 'big', color: COL.orange, dur: 1700 });
     startReview();
   }
 
@@ -563,7 +569,7 @@
         : `Tu tendido: ${G.human.length} cm de rollo.`);
     } else {
       setHeading(`Tu tendido: ${G.human.length} cm de rollo`, 'Ahora TelaTetris reacomoda tus mismas piezas.');
-      shout('¡COMPLETO!', { kind: 'big', dur: 900 });
+      shout('¡COMPLETO!', { kind: 'big', dur: 1400 });
     }
     $('keys').style.visibility = 'hidden';
     updateSide();
@@ -633,7 +639,7 @@
     showPanel('solve');
     setStep(4);
     sfx('go');
-    shout('TURNO DE TELATETRIS', { color: COL.text, sub: 'Mismas piezas, mismos giros, misma separación.', dur: 1500 });
+    shout('TURNO DE TELATETRIS', { color: COL.text, sub: 'Mismas piezas, mismos giros, misma separación.', dur: 2400 });
     $('solveIters').textContent = G.result.stats.iterations.toLocaleString('en-US');
     $('solveHuman').textContent = `${G.human.length} cm`;
     $('solveBest').textContent = `${G.result.length} cm`;
@@ -680,7 +686,6 @@
 
   // ---------------------------------------------------------- result ---
 
-  const SHIRT_SVG = '<svg viewBox="0 0 11 9" shape-rendering="crispEdges" aria-hidden="true"><g fill="#1C1C1B"><rect x="2" width="3" height="1"/><rect x="6" width="3" height="1"/><rect x="1" y="1" width="9" height="1"/><rect y="2" width="11" height="2"/><rect y="4" width="2" height="1"/><rect x="3" y="4" width="5" height="5"/><rect x="9" y="4" width="2" height="1"/></g><rect x="6" y="5" width="1" height="1" fill="#F95300"/></svg>';
 
   function showResults() {
     G.phase = 'result';
@@ -697,34 +702,44 @@
     const yd = Math.abs(me.yards - tt.yards);
     const price = `a ${gtq(Garments.PRICE_PER_YARD_GTQ, 0)} la yarda`;
 
-    const card = $('savedCard');
-    card.classList.toggle('lose', saved < 0);
-    if (saved > 0) {
-      card.innerHTML = `
-        <div class="k">Dinero ahorrado en tela</div>
-        <div class="big" id="cntQ">Q0.00</div>
-        <div class="pct">${yd.toFixed(2)} yd menos de tela</div>
-        <div class="note">En 1,000 pedidos iguales: <b>${gtq(money * 1000, 0)}</b> ahorrados (${price}).</div>
-        <div class="shirts">${SHIRT_SVG}<span><strong>${gtq(money / shirts)}</strong>menos de tela por playera</span></div>`;
-      countUp($('cntQ'), money, (v) => gtq(v));
-      sfx('win');
-      shout('¡AHORRO!', { kind: 'big', burst: true, dur: 1200 });
-    } else if (saved === 0) {
-      card.innerHTML = `
-        <div class="k">Empate</div>
-        <div class="big">Q0.00</div>
-        <div class="note">Tu tendido cuesta lo mismo que el de TelaTetris. Muy bien.</div>`;
-      sfx('win');
-      shout('¡EMPATE!', { kind: 'big', dur: 1100 });
-    } else {
-      card.innerHTML = `
-        <div class="k">Le ganaste a TelaTetris</div>
-        <div class="big">${gtq(-money)}</div>
-        <div class="pct">${yd.toFixed(2)} yd menos de tela</div>
-        <div class="note">Buen ojo. Así medimos el ahorro: contra el mejor tendido, no contra el peor.</div>`;
-      sfx('lose');
-      shout('¡GANASTE!', { kind: 'big', burst: true, color: COL.orange, dur: 1200 });
-    }
+    // One message: the savings, at scale. The result hides everything else and
+    // keeps the layout below, smaller.
+    const SCALE = 1000;
+    const shirtsLabel = `${shirts} ${shirts === 1 ? 'playera' : 'playeras'}`;
+    const amount = Math.abs(money);
+    const head = saved > 0
+      ? { cls: 'hero', k: `En ${fmtInt(SCALE)} compras como esta, TelaTetris te ahorra`,
+          sub: `${gtq(amount)} en esta compra de ${shirtsLabel} · ${yd.toFixed(2)} yd menos de tela` }
+      : saved < 0
+        ? { cls: 'hero lose', k: `¡Le ganaste a TelaTetris! En ${fmtInt(SCALE)} compras ahorrarías`,
+            sub: `${gtq(amount)} menos que TelaTetris en esta compra de ${shirtsLabel}` }
+        : { cls: 'hero tie', k: 'Empate con TelaTetris', sub: 'Tu tendido cuesta lo mismo que el suyo.' };
+    const max = Math.max(me.gtq, tt.gtq);
+    const bar = (cls, name, b) => `
+        <div class="hbar ${cls}"><span class="hb-name">${name}</span><span class="hb-track"><i style="--w:${((b.gtq / max) * 100).toFixed(1)}%"></i></span><span class="hb-val">${gtq(b.gtq)}</span></div>`;
+    const hero = $('hero');
+    hero.className = head.cls;
+    hero.innerHTML = `
+      <div class="hero-main">
+        <div class="hero-k">${head.k}</div>
+        <div class="hero-big" id="heroBig">Q0</div>
+        <div class="hero-sub">${head.sub}</div>
+      </div>
+      <div class="hero-side">
+        <div class="hero-bars">
+          <div class="hb-title">Tela de esta compra</div>${bar('me', 'Tú', me)}${bar('tt', 'TelaTetris', tt)}
+          <p class="hero-note">${price}</p>
+        </div>
+        <button class="btn primary hero-again" id="bAgainHero">Jugar otra vez <kbd>Enter</kbd></button>
+      </div>`;
+    hero.hidden = false;
+    $('bAgainHero').onclick = () => { newGame(); sfx('start'); };
+    fitText($('heroBig'), gtq(amount * SCALE, 0));
+    countUp($('heroBig'), amount * SCALE, (v) => gtq(v, 0), 1600);
+    shouts.length = 0;   // a skipped rearrangement leaves its caption behind
+    if (saved > 0) { sfx('win'); shout('¡AHORRO!', { kind: 'big', burst: true, dur: 1800 }); }
+    else if (saved === 0) { sfx('win'); shout('¡EMPATE!', { kind: 'big', dur: 1700 }); }
+    else { sfx('lose'); shout('¡GANASTE!', { kind: 'big', burst: true, color: COL.orange, dur: 1800 }); }
 
     const shown = Math.min(G.elapsed, TURN_MS);
     const mins = Math.floor(shown / 60000), secs = Math.floor((shown % 60000) / 1000);
@@ -738,10 +753,12 @@
 
     showPanel('result');
     setStep(5);
-    if (focusedControl() === null && $('bAgain').focus) $('bAgain').focus({ preventScroll: true });
+    if (focusedControl() === null && $('bAgainHero').focus) $('bAgainHero').focus({ preventScroll: true });
     setHeading(saved > 0 ? 'Mismas playeras, menos gasto en tela.' : 'Las mismas playeras.',
-      `Tú: ${gtq(me.gtq)} · TelaTetris: ${gtq(tt.gtq)} de tela`);
-    requestRender();
+      'Abajo, el acomodo de TelaTetris en el rollo.');
+    resize();
+    // Fit the headline once the result layout (no side panel) is in place.
+    fitText($('heroBig'), gtq(amount * SCALE, 0));
   }
 
   // ------------------------------------------------------------ side ---
@@ -750,6 +767,9 @@
     $('playPanel').hidden = which !== 'play';
     $('solvePanel').hidden = which !== 'solve';
     $('resultPanel').hidden = which !== 'result';
+    $('hero').hidden = which !== 'result';
+    // The result shows only the savings and the layout: no side panel, stats or legend.
+    $('app').classList.toggle('result-mode', which === 'result');
     if (which === 'solve') $('solveBar').style.width = '0%';
   }
 
@@ -889,7 +909,7 @@
     if (G.t0 === null) return;
     const sec = Math.ceil(left / 1000);
     if (sec <= 10 && sec > 0 && sec !== G.lastTick) { G.lastTick = sec; sfx('tick'); }
-    if (left <= 10000 && !G.warned) { G.warned = true; shout('¡10 SEGUNDOS!', { color: COL.orange, dur: 1100 }); }
+    if (left <= 10000 && !G.warned) { G.warned = true; shout('¡10 SEGUNDOS!', { color: COL.orange, dur: 1700 }); }
     if (left <= 0) timeUp();
   }
   setInterval(tickClock, 200);
@@ -1019,7 +1039,7 @@
     const humanLen = G.human.length;
     const done = G.phase === 'result';
     if (done) {
-      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.yellow, 'AHORRADOS');
+      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.yellow, 'MENOS TELA');
       else if (G.algo.length > humanLen) box(g, ox, oy, s, { from: humanLen, to: G.algo.length }, COL.orange, 'VENTAJA TUYA');
     }
 
@@ -1180,10 +1200,9 @@
       g.fillStyle = color;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      const big = Math.round(Math.min(24, Math.max(10, w / 9)));
+      const big = Math.round(Math.min(16, Math.max(10, w / 12)));
       g.font = `400 ${big}px ${PIX}`;
-      const cost = Garments.purchase(r.to - r.from).gtq;
-      g.fillText(gtq(cost), x + w / 2, oy + H / 2 - 12);
+      g.fillText(`${Garments.purchase(r.to - r.from).yards.toFixed(2)} yd`, x + w / 2, oy + H / 2 - 12);
       g.font = `400 8px ${PIX}`;
       g.fillText(label, x + w / 2, oy + H / 2 + big / 2 + 8);
       g.textAlign = 'left';
@@ -1318,7 +1337,7 @@
     const now = performance.now();
     g.setTransform(fxView.dpr, 0, 0, fxView.dpr, 0, 0);
     g.clearRect(0, 0, fxView.w, fxView.h);
-    if (intro) drawJourney(g, now - intro.t0);
+    if (intro) drawJourney(g, introT(now));
     for (let i = shouts.length - 1; i >= 0; i--) if (now - shouts[i].t0 > shouts[i].dur) shouts.splice(i, 1);
     for (const s of shouts) drawShout(g, s, now - s.t0);
     if (intro || shouts.length) requestAnimationFrame(fxFrame);
@@ -1357,7 +1376,7 @@
 
   function drawShout(g, s, age) {
     const r = stageRect();
-    const IN = s.kind === 'pop' ? 140 : 190, OUT = 220;
+    const IN = s.kind === 'pop' ? 160 : 240, OUT = 260;
     const kin = clamp01(age / IN), kout = clamp01((age - (s.dur - OUT)) / OUT);
     const still = reducedMotion;
     // Zoom in from far, wobble on impact, then leave.
@@ -1392,7 +1411,7 @@
       const ty = y - (s.sub ? 13 : 0);
       slamText(g, s.text, cx + jx + (still ? 0 : kout * 160), ty + jy, size, sc, alpha, s.color, flash);
       if (s.sub) {
-        const n = still ? s.sub.length : Math.floor(clamp01((age - IN) / 420) * s.sub.length);
+        const n = still ? s.sub.length : Math.floor(clamp01((age - IN) / 750) * s.sub.length);
         g.save();
         g.globalAlpha = 1 - kout;
         g.font = `600 ${r.width > 700 ? 15 : 12}px ${FONT}`;
@@ -1460,7 +1479,10 @@
   // apart into its six pattern pieces, the pieces fly into the piece bank,
   // and the round starts with ¿LISTOS? ¡YA!
 
-  const T_FLY = 300, T_EXPLODE = 1500, T_BANK = 2900, T_ROLL = 4400, T_READY = 5600, T_GO = 6300, T_END = 6900;
+  // The story, slow enough to read, pauses on the controls screen until OK.
+  const T_FLY = 500, T_EXPLODE = 2800, T_BANK = 5200, T_ROLL = 7600, T_CONTROLS = 9600;
+  const T_READY = T_CONTROLS + 100, T_GO = T_CONTROLS + 1050, T_END = T_CONTROLS + 1900;
+  const FLY_MS = 1000, BURST_MS = 800, LAND_MS = 900, LAND_GAP = 150;
   let swallowClick = 0;
 
   function introSize() {
@@ -1477,24 +1499,28 @@
         const card = sizeCards[size];
         if (card) { card.classList.add('pulse'); setTimeout(() => card.classList.remove('pulse'), 1300); }
       }],
-      [80, () => shout('UN PEDIDO DE PLAYERAS', { sub: `${n} ${n === 1 ? 'playera' : 'playeras'} · ${sizes.length === 1 ? 'talla' : 'tallas'} ${sizes.join(', ')}`, dur: 1380 })],
+      [120, () => shout('UN PEDIDO DE PLAYERAS', { sub: `${n} ${n === 1 ? 'playera' : 'playeras'} · ${sizes.length === 1 ? 'talla' : 'tallas'} ${sizes.join(', ')}`, dur: 2550 })],
       [T_FLY, () => sfx('pop')],
-      [T_EXPLODE, () => { sfx('burst'); shout('¡SE DESARMA EN 6 PIEZAS!', { sub: 'delantero · espalda · 2 mangas · cuello · bolsillo', dur: 1380 }); }],
-      [T_BANK, () => { sfx('whoosh'); shout('¡AL BANCO DE PIEZAS!', { sub: 'Ahí eliges qué pieza acomodar.', dur: 1450 }); }],
-      [T_BANK + 1250, () => revealAllTiles(true)],
-      [T_ROLL, () => shout('ACOMÓDALAS EN EL ROLLO', { sub: 'Gana el tendido más corto. Tienes 1:30.', dur: 1180 })],
-      [T_READY, () => { sfx('count'); shout('¿LISTOS?', { kind: 'big', color: COL.text, dur: 680 }); }],
-      [T_GO, () => { sfx('go'); shout('¡YA!', { kind: 'big', burst: true, dur: 720 }); }],
+      [T_EXPLODE, () => { sfx('burst'); shout('¡SE DESARMA EN 6 PIEZAS!', { sub: 'delantero · espalda · 2 mangas · cuello · bolsillo', dur: 2300 }); }],
+      [T_BANK, () => { sfx('whoosh'); shout('¡AL BANCO DE PIEZAS!', { sub: 'Ahí eliges qué pieza acomodar.', dur: 2300 }); }],
+      [T_BANK + 5 * LAND_GAP + LAND_MS + 250, () => revealAllTiles(true)],
+      [T_ROLL, () => shout('ACOMÓDALAS EN EL ROLLO', { sub: 'Gana el tendido más corto. Tienes 1:30.', dur: 1950 })],
+      [T_CONTROLS, () => openControls()],
+      [T_READY, () => { sfx('count'); shout('¿LISTOS?', { kind: 'big', color: COL.text, dur: 900 }); }],
+      [T_GO, () => { intro.stage = 'go'; sfx('go'); shout('¡YA!', { kind: 'big', burst: true, dur: 900 }); }],
       [T_END, () => endIntro(false)],
     ];
-    intro = { t0: performance.now(), cue: 0, step: 0, size, cues, landed: new Set(), revealed: new Set() };
+    intro = {
+      t0: performance.now(), cue: 0, step: 0, size, cues, landed: new Set(), revealed: new Set(),
+      stage: 'journey', pauseAt: 0,
+    };
     $('keys').style.visibility = 'hidden';
     setHeading('Así se hace una playera', 'De la playera a sus piezas, y de las piezas al rollo de tela.');
     updateSide();
     requestRender();
     const tick = () => {
       if (!intro) return;
-      const t = performance.now() - intro.t0;
+      const t = introT();
       while (intro && intro.cue < intro.cues.length && t >= intro.cues[intro.cue][0]) intro.cues[intro.cue++][1]();
       if (!intro) return;
       const step = t < T_EXPLODE ? 1 : t < T_ROLL ? 2 : 3;
@@ -1505,9 +1531,52 @@
     runFx();
   }
 
+  /** Journey time, frozen while the controls screen waits for OK. */
+  function introT(now = performance.now()) {
+    return (intro.stage === 'controls' ? intro.pauseAt : now) - intro.t0;
+  }
+
+  /** Skip: the story jumps to the controls screen; on it, OK; during ¡YA!, play. */
+  function skipIntro() {
+    if (!intro) return;
+    if (intro.stage === 'journey') {
+      shouts.length = 0;
+      revealAllTiles(false);
+      intro.t0 = performance.now() - T_CONTROLS;
+      intro.cue = intro.cues.findIndex(([t]) => t >= T_CONTROLS);
+    } else if (intro.stage === 'controls') {
+      confirmControls();
+    } else {
+      endIntro(false);
+    }
+  }
+
+  function openControls() {
+    if (!intro) return;
+    intro.stage = 'controls';
+    intro.pauseAt = performance.now();
+    revealAllTiles(false);
+    const el = $('controls');
+    el.hidden = false;
+    sfx('select');
+    if ($('bOk').focus) $('bOk').focus({ preventScroll: true });
+  }
+
+  function confirmControls() {
+    if (!intro || intro.stage !== 'controls') return;
+    intro.t0 += performance.now() - intro.pauseAt;
+    intro.stage = 'ready';
+    const el = $('controls');
+    el.classList.add('leaving');
+    setTimeout(() => { el.hidden = true; el.classList.remove('leaving'); }, reducedMotion ? 0 : 260);
+    if ($('bOk').blur) $('bOk').blur();
+    sfx('start');
+  }
+
   /** Ends the journey; a skip still gets a short ¡YA!. */
   function endIntro(skipped = true) {
     if (!intro) return;
+    if (intro.stage === 'controls') { const el = $('controls'); el.hidden = true; }
     intro = null;
     if (skipped) {
       shouts.length = 0;
@@ -1560,7 +1629,7 @@
   }
 
   function drawJourney(g, t) {
-    if (reducedMotion) t = Math.max(t, T_BANK + 1300);
+    if (reducedMotion) t = Math.max(t, T_BANK + 5 * LAND_GAP + LAND_MS);
     const stage = stageRect();
     const fade = clamp01(t / 250) * (1 - clamp01((t - T_GO) / 450));
     g.fillStyle = `rgba(12,12,11,${0.8 * fade})`;
@@ -1576,25 +1645,25 @@
     // 1 · the shirt rises out of its size card
     if (t < T_EXPLODE) {
       const icon = rectOf(shirtIcons[size]);
-      const p = easeBack(clamp01((t - T_FLY) / 700));
+      const p = easeBack(clamp01((t - T_FLY) / FLY_MS));
       const s0 = icon ? Math.min((icon.width - 6) / (94 * 1.16), (icon.height - 4) / (74 * 1.16)) : S * 0.2;
       const x0 = icon ? icon.left + icon.width / 2 : cx, y0 = icon ? icon.top + icon.height / 2 : cy;
-      const bob = t > T_FLY + 700 && !reducedMotion ? Math.sin((t - T_FLY) / 160) * 3 : 0;
+      const bob = t > T_FLY + FLY_MS && !reducedMotion ? Math.sin((t - T_FLY) / 160) * 3 : 0;
       if (t >= T_FLY) drawShirt(g, lerp(x0, cx, p), lerp(y0, cy, p) + bob, lerp(s0, S, clamp01(p)), sc, () => 'fill', 2);
       return;
     }
 
     // 2 · it comes apart  ·  3 · the pieces fly into the bank
     PARTS.forEach((part, i) => {
-      const p1 = easeBack(clamp01((t - T_EXPLODE - i * 40) / 560));
-      const q = clamp01((t - T_BANK - i * 110) / 650);
+      const p1 = easeBack(clamp01((t - T_EXPLODE - i * 60) / BURST_MS));
+      const q = clamp01((t - T_BANK - i * LAND_GAP) / LAND_MS);
       if (q <= 0) {
         if (part.type === 'cuello') {
           const pts = lerpPts(WORN.cuello.pts, collarPts(EXPLODED.cuello), clamp01(p1));
           strokeCollar(g, pts, S, cx, cy, sc, 'fill');
         } else {
           const pose = lerpPose(WORN[part.id], EXPLODED[part.id], p1);
-          if (!reducedMotion && t > T_EXPLODE + 700) pose.y += Math.sin((t + i * 300) / 220) * 1.2;
+          if (!reducedMotion && t > T_EXPLODE + BURST_MS + 100) pose.y += Math.sin((t + i * 300) / 220) * 1.2;
           partPath(g, part.type, pose, S, cx, cy, sc);
           fillPart(g, part.type, 'fill', 2);
         }
@@ -1752,11 +1821,11 @@
   });
   canvas.addEventListener('pointerleave', () => { pointer = null; });
   window.addEventListener('pointerdown', (e) => {
-    if (!intro) return;
+    if (!intro || intro.stage === 'controls') return;   // the controls screen takes its own clicks
     e.preventDefault();
     e.stopPropagation();
     swallowClick = performance.now();
-    endIntro();
+    skipIntro();
   }, true);
   window.addEventListener('click', (e) => {
     if (performance.now() - swallowClick < 600) { e.preventDefault(); e.stopPropagation(); swallowClick = 0; return; }
@@ -1839,7 +1908,7 @@
       return;
     }
     if (intro) {
-      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endIntro(); }
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); skipIntro(); }
       return;
     }
     if (e.key === 'h' || e.key === 'H') { help(); return; }
@@ -1878,6 +1947,7 @@
   $('bAgain').onclick = () => { newGame(); sfx('start'); };
   $('bHelp').onclick = help;
   $('bStart').onclick = beginFromStart;
+  $('bOk').onclick = confirmControls;
   $('bSound').onclick = toggleSound;
   if (!Sound.on) { $('bSound').setAttribute('aria-pressed', 'false'); $('bSound').textContent = '♪ Off'; }
   window.addEventListener('resize', resize);
@@ -1893,6 +1963,15 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 1300);
   }
 
+  /** Shrinks a line's font until its final text fits its box. */
+  function fitText(el, finalText) {
+    if (typeof getComputedStyle !== 'function' || !el.style) return;
+    el.style.fontSize = '';
+    el.textContent = finalText;
+    let size = parseFloat(getComputedStyle(el).fontSize) || 0;
+    while (size > 20 && el.scrollWidth > el.clientWidth + 1) { size -= 2; el.style.fontSize = `${size}px`; }
+  }
+
   function countUp(el, target, format, ms = 900) {
     const t0 = performance.now();
     const f = () => {
@@ -1904,7 +1983,133 @@
   }
 
   const pc = (x) => `${(x * 100).toFixed(1)}%`;
+  const fmtInt = (x) => Math.round(x).toLocaleString('en-US');
   const gtq = (x, d = 2) => `Q${x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+
+  // ----------------------------------------------------------- gamepad ---
+  // Browsers expose Xbox, PlayStation and Switch Pro controllers with the
+  // "standard" layout: A/✕ 0, B/○ 1, X/□ 2, Y/△ 3, L1 4, R1 5, L2 6, R2 7,
+  // Select 8, Start 9, D-pad 12–15, left stick axes 0–1.
+  const BTN = { A: 0, B: 1, X: 2, Y: 3, L1: 4, R1: 5, L2: 6, R2: 7, SELECT: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
+  const DEAD = 0.22;          // stick dead zone
+  let padLoop = false;
+  let padLast = 0;
+  const padPrev = new Map();  // gamepad index → buttons pressed last frame
+  const padHold = { dir: null, t0: 0, next: 0 };
+  const stick = { x: 0, y: 0 };
+
+  function pads() {
+    try { return [...(navigator.getGamepads ? navigator.getGamepads() : [])].filter(Boolean); } catch (e) { return []; }
+  }
+
+  function rumble(ms, strong, weak) {
+    for (const gp of pads()) {
+      try {
+        if (gp.vibrationActuator) gp.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak });
+      } catch (e) { /* rumble is optional */ }
+    }
+  }
+
+  function setPadUI(on) {
+    if (document.body && document.body.classList) document.body.classList.toggle('pad-on', on);
+  }
+
+  function startPadLoop() {
+    if (padLoop) return;
+    padLoop = true;
+    padLast = performance.now();
+    requestAnimationFrame(padTick);
+  }
+
+  function padTick(now) {
+    const list = pads();
+    if (!list.length) { padLoop = false; return; }
+    const dt = Math.min(0.05, Math.max(0, (now - padLast) / 1000));
+    padLast = now;
+    for (const gp of list) {
+      const prev = padPrev.get(gp.index) || [];
+      const pressed = gp.buttons.map((b) => b.pressed || b.value > 0.5);
+      padPrev.set(gp.index, pressed);
+      const down = (i) => !!pressed[i] && !prev[i];
+      if (pressed.some((p, i) => p && !prev[i])) { padActive = true; setPadUI(true); onPadPress(down); }
+      padMove(gp, pressed, now, dt);
+    }
+    requestAnimationFrame(padTick);
+  }
+
+  /** Cycles the held piece through the five types; L1 forward, L2 back. */
+  function cycleType(dir) {
+    const types = Garments.GARMENT.map(([t]) => t);
+    const left = (t) => G.queue.some((id) => G.pieces[id].data.type === t);
+    const cur = G.held ? types.indexOf(G.pieces[G.held.id].data.type) : -1;
+    for (let k = 1; k <= types.length; k++) {
+      const t = types[(cur + dir * k + types.length * 2) % types.length];
+      if (t !== types[cur] && left(t)) { pickType(t); return; }
+    }
+  }
+
+  function onPadPress(down) {
+    // Any button starts from the start screen and skips the journey.
+    if (startOn) { beginFromStart(); return; }
+    // On the controls screen only A or Start means OK; elsewhere any button skips ahead.
+    if (intro) { if (intro.stage !== 'controls' || down(BTN.A) || down(BTN.START)) skipIntro(); return; }
+    if (G.phase === 'move') { G.moveT0 = -1e9; return; }
+    if (G.phase === 'result') { if (down(BTN.A) || down(BTN.START)) { newGame(); sfx('start'); } return; }
+    if (G.phase === 'review') {
+      if (down(BTN.A) || down(BTN.START)) startMove();
+      else if (down(BTN.B)) undo();
+      return;
+    }
+    if (G.phase !== 'play') return;
+    pointer = null;
+    if (down(BTN.R1) || down(BTN.R2)) { startClock(); rotate(); }
+    if (down(BTN.A)) { startClock(); if (G.held) place(); }
+    if (down(BTN.X)) { startClock(); hardDrop(); }
+    if (down(BTN.B)) undo();
+    if (down(BTN.Y)) { startClock(); nextPiece(); }
+    if (down(BTN.L1)) { startClock(); cycleType(1); }
+    if (down(BTN.L2)) { startClock(); cycleType(-1); }
+    if (down(BTN.SELECT)) toggleSound();
+  }
+
+  /** D-pad: 1 cm per press, repeating while held (3 cm steps after a second). Stick: speed grows with the push. */
+  function padMove(gp, pressed, now, dt) {
+    if (startOn || intro || !G || G.phase !== 'play' || !G.held) { padHold.dir = null; stick.x = stick.y = 0; return; }
+    const step = (dx, dy) => {
+      if (!dx && !dy) return;
+      startClock();
+      pointer = null;
+      setHeld(G.held.x + dx, G.held.y + dy);
+    };
+    const dx = (pressed[BTN.RIGHT] ? 1 : 0) - (pressed[BTN.LEFT] ? 1 : 0);
+    const dy = (pressed[BTN.DOWN] ? 1 : 0) - (pressed[BTN.UP] ? 1 : 0);
+    const dir = dx || dy ? `${dx},${dy}` : null;
+    if (dir !== padHold.dir) {
+      padHold.dir = dir;
+      if (dir) { step(dx, dy); padHold.t0 = now; padHold.next = now + 220; }
+    } else if (dir && now >= padHold.next) {
+      const n = now - padHold.t0 > 1000 ? 3 : 1;
+      step(dx * n, dy * n);
+      padHold.next = now + 45;
+    }
+    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+    const mag = Math.hypot(ax, ay);
+    if (mag > DEAD) {
+      const k = Math.min(1, (mag - DEAD) / (1 - DEAD));
+      const speed = 12 + 98 * k * k;          // cm per second
+      stick.x += (ax / mag) * speed * dt;
+      stick.y += (ay / mag) * speed * dt;
+      const sx = Math.trunc(stick.x), sy = Math.trunc(stick.y);
+      stick.x -= sx; stick.y -= sy;
+      step(sx, sy);
+    } else {
+      stick.x = stick.y = 0;
+    }
+  }
+
+  window.addEventListener('gamepadconnected', () => { setPadUI(true); toast('Control conectado'); startPadLoop(); });
+  window.addEventListener('gamepaddisconnected', () => { if (!pads().length) { setPadUI(false); padActive = false; } });
+  if (pads().length) startPadLoop();
 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { resize(); updateSide(); });
   newGame();

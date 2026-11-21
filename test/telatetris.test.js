@@ -9,7 +9,7 @@ const Arrange = require('../arrange/arrange.js');
 const Garments = require('../connectors/telatetris/garments.js');
 
 // The game runs normally, with only the DOM and animation timers replaced.
-function game({ record } = {}) {
+function game({ record, gamepad } = {}) {
   class Element {
     constructor() {
       this.children = [];
@@ -30,6 +30,7 @@ function game({ record } = {}) {
   const elements = new Map();
   const timers = [];
   const listeners = {};
+  const frames = [];
   const document = {
     getElementById(id) {
       if (!elements.has(id)) elements.set(id, new Element());
@@ -45,8 +46,10 @@ function game({ record } = {}) {
       addEventListener(type, listener) { listeners[type] = listener; },
     },
     performance: { now: () => 0 },
+    navigator: { getGamepads: () => (gamepad ? [gamepad] : []) },
     console: { warn() {} },
-    requestAnimationFrame() {}, setInterval() {}, setTimeout(callback) { timers.push(callback); }, clearTimeout() {},
+    // Only the controller loop runs frames here; drawing needs a real canvas.
+    requestAnimationFrame(callback) { if (callback.name === 'padTick') frames.push(callback); }, setInterval() {}, setTimeout(callback) { timers.push(callback); }, clearTimeout() {},
   });
 
   const element = (id) => document.getElementById(id);
@@ -55,7 +58,9 @@ function game({ record } = {}) {
   const quantity = (name) => Number(tile(name).children[1].textContent.slice(1));
   const key = (key) => listeners.keydown({ key, preventDefault() {} });
   const runTimers = () => timers.splice(0).forEach((callback) => callback());
-  return { element, tiles, tile, quantity, key, runTimers };
+  let clock = 0;
+  const frame = () => frames.splice(0).forEach((callback) => callback((clock += 16)));
+  return { element, tiles, tile, quantity, key, runTimers, frame };
 }
 
 test('records only the final human length once, after review undo closes, and records a new round separately', () => {
@@ -177,4 +182,41 @@ test('number keys pick a piece type, and pressing again steps through its sizes'
   assert.equal(held(), first, 'three sizes in the order, so the fourth press is back to the first');
   g.key('5');
   assert.match(held(), /^Bolsillo · /);
+});
+
+function fakePad() {
+  return { index: 0, axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+}
+
+test('controller: A places, B undoes, X slides, L1 changes piece type, Y takes the next piece', () => {
+  const pad = fakePad();
+  const g = game({ gamepad: pad });
+  const tap = (i) => { pad.buttons[i].pressed = true; g.frame(); pad.buttons[i].pressed = false; g.frame(); };
+  const held = () => g.tiles().find((el) => el.attributes['aria-pressed'] === 'true').children[2].textContent;
+  tap(0);
+  assert.equal(g.element('sPieces').textContent, '1/24');
+  tap(1);
+  assert.equal(g.element('sPieces').textContent, '0/24');
+  const type = held().split(' · ')[0];
+  tap(4);
+  assert.notEqual(held().split(' · ')[0], type);
+  const before = held();
+  tap(3);
+  assert.equal(g.tiles().filter((el) => el.attributes['aria-pressed'] === 'true').length, 1);
+  tap(2);
+  assert.equal(g.element('sPieces').textContent, '1/24');
+  assert.ok(before);
+});
+
+test('controller: holding a button counts once; R1 and R2 both turn without placing', () => {
+  const pad = fakePad();
+  const g = game({ gamepad: pad });
+  pad.buttons[0].pressed = true;
+  g.frame(); g.frame(); g.frame();
+  assert.equal(g.element('sPieces').textContent, '1/24', 'a held A places one piece');
+  pad.buttons[0].pressed = false;
+  g.frame();
+  pad.buttons[5].pressed = true; g.frame(); pad.buttons[5].pressed = false; g.frame();
+  pad.buttons[7].value = 0.9; g.frame(); pad.buttons[7].value = 0; g.frame();
+  assert.equal(g.element('sPieces').textContent, '1/24');
 });
