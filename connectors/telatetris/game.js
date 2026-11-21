@@ -731,7 +731,10 @@
           <div class="hb-title">Tela de esta compra</div>${bar('me', 'Tú', me)}${bar('tt', 'TelaTetris', tt)}
           <p class="hero-note">${price}</p>
         </div>
-        <button class="btn primary hero-again" id="bAgainHero">Jugar otra vez <kbd>Enter</kbd></button>
+        <div class="hero-actions">
+          <a class="btn primary hero-platform" href="../planner/index.html">Ir a la plataforma</a>
+          <button class="btn hero-again" id="bAgainHero">Jugar otra vez <kbd>Enter</kbd></button>
+        </div>
       </div>`;
     hero.hidden = false;
     $('bAgainHero').onclick = () => { newGame(); sfx('start'); };
@@ -2202,10 +2205,10 @@
   const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'r', 'R', 'c', 'C', 'z', 'Z', 'Backspace',
     '1', '2', '3', '4', '5'];
 
-  /** A button the player reached with Tab keeps Enter and Space for itself. */
+  /** A control the player reached with Tab keeps its native keyboard behavior. */
   function focusedControl() {
     const el = document.activeElement;
-    return el && el !== document.body && (el.tagName === 'BUTTON' || el.tagName === 'INPUT') ? el : null;
+    return el && el !== document.body && (el.tagName === 'BUTTON' || el.tagName === 'INPUT' || (el.tagName === 'A' && el.hasAttribute('href'))) ? el : null;
   }
 
   window.addEventListener('keydown', (e) => {

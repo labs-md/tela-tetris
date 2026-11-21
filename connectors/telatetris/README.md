@@ -2,6 +2,12 @@
 
 Open `index.html` in a browser. There's no build step or server. The game works offline, including its bundled Press Start 2P and IBM Plex Mono fonts.
 
+## Unified pitch demo
+
+After a completed round, choose **Ir a la plataforma** to open the fabric and wood planner in the same tab. **Jugar otra vez** remains available. The handoff works from the repository's game page as well as the packaged demo.
+
+Run `npm run build:demo` from the repository root to create `dist/demo/`. Publish that folder to give the pitch one link: the game opens at `/`, and the button leads to `/planner/index.html`. The build includes the engine, planner, fonts and licenses, rewrites the two relative paths for this layout, and versions game scripts by their content hashes. It omits vendor source and deployment files, and clears the bundled ingestion token. Optional score delivery still uses `/connect.html` and the tab's session token; play and the planner work without it.
+
 ## Record human scores in Instabloom
 
 The temporary hosted game is at https://supple-arbor-5msw.here.now/. It expires on November 22, 2026 at 19:57 UTC unless claimed. Open https://supple-arbor-5msw.here.now/connect.html to paste the ingestion token into that tab's session storage, then choose "Conectar y jugar". The published files contain no real token. Automatic approval review rejected embedding the credential publicly even after explicit approval, so the hosted game uses this session-only setup instead. The local token constant is unchanged. Instabloom must allow `https://supple-arbor-5msw.here.now` as a browser origin; its last checked POST and GET preflights return 401 without CORS permission headers.

@@ -9,6 +9,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "build:demo": "node scripts/build-demo.cjs",
     "test": "node --test test/*.test.js",
     "build:planner": "node scripts/build-planner.cjs",
     "test:planner:preview": "node scripts/verify-planner.cjs --asset-preview",

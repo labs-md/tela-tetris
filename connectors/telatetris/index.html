@@ -252,8 +252,8 @@
   table.cmp tr.me td span { color: var(--muted); font-weight: 400; }
   table.cmp tr.tt td { color: var(--yellow); font-weight: 700; }
   table.cmp tr.ref td { color: var(--muted); }
-  .foot { color: var(--dim); font-size: 11px; line-height: 1.5; margin: 0; }
-  .cmp-note { color: var(--dim); font-size: 11px; margin: 8px 0 0; }
+  .foot { color: var(--dim); font-size: 12px; line-height: 1.5; margin: 0; }
+  .cmp-note { color: var(--dim); font-size: 12px; margin: 8px 0 0; }
 
 
   /* --------------------------------------------- savings banner (result) --- */
@@ -312,8 +312,13 @@
   .result-mode .hero-sub { font-size: 15px; }
   .result-mode .hero-side { gap: 16px; padding: 18px 22px; }
   .result-mode .canvas-wrap { opacity: 0.85; }
-  .hero-note { margin: 6px 0 0; font-size: 11px; color: var(--dim); }
+  .hero-note { margin: 6px 0 0; font-size: 12px; color: var(--dim); }
+  .hero-actions { display: grid; gap: 8px; }
+  .hero-platform { display: block; text-align: center; text-decoration: none; }
   .hero-again { width: 100%; }
+  @media (max-width: 980px) {
+    .result-mode .hero { grid-template-columns: minmax(0, 1fr); }
+  }
   @media (min-width: 981px) and (min-height: 560px) {
     /* the banner takes the larger share of the stage; the layout gets the rest */
     .result-mode .hero { flex: 1.25 1 0; min-height: 0; }
@@ -344,7 +349,7 @@
   }
   .controls-col li .caps { color: var(--dim); white-space: nowrap; }
   .controls-col li span:last-child { color: var(--text); }
-  .controls-note { margin: 10px 0 0; font-size: 11px; color: var(--dim); }
+  .controls-note { margin: 10px 0 0; font-size: 12px; color: var(--dim); }
   .pad-status .on, .pad-on .pad-status .off { display: none; }
   .pad-on .pad-status .on { display: inline; color: var(--yellow); font-weight: 700; }
   .pad-on .controls-col.pad, body:not(.pad-on) .controls-col.kb { border-color: var(--yellow); }
@@ -401,7 +406,7 @@
   .start-title em { font-style: normal; color: var(--yellow); }
   .start-sub { margin: 0; max-width: 56ch; color: var(--muted); font-size: 15px; line-height: 1.55; animation: start-up 0.5s ease-out 0.55s both; }
   .start-btn { margin-top: 6px; font-size: 14px; padding: 18px 40px; animation: start-up 0.5s ease-out 0.75s both, start-throb 1.2s steps(2) 1.3s infinite; }
-  .start-hint { margin: 0; color: var(--dim); font-size: 12px; }
+  .start-hint { margin: 0; color: var(--muted); font-size: 12px; }
   .start.leaving { animation: start-out 0.32s ease-in forwards; }
   @keyframes start-slam { from { opacity: 0; transform: skewX(-10deg) scale(2.6); } 55% { opacity: 1; } to { opacity: 1; transform: skewX(-10deg) scale(1); } }
   @keyframes start-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
@@ -631,6 +636,6 @@
 <script src="../../arrange/arrange.js?v=13"></script>
 <script src="garments.js?v=13"></script>
 <script src="score-events.js?v=2"></script>
-<script src="game.js?v=13"></script>
+<script src="game.js?v=14"></script>
 </body>
 </html>
