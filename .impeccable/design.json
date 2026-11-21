@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-21T18:24:00.223496+00:00",
+  "title": "Design System: TelaTetris",
+  "extensions": {
+    "colorMeta": {
+      "lime": {
+        "role": "primary",
+        "displayName": "Labs lime",
+        "tonalRamp": [
+          "oklch(15.00% 0.18091 115.39)",
+          "oklch(26.43% 0.18091 115.39)",
+          "oklch(37.86% 0.18091 115.39)",
+          "oklch(49.29% 0.18091 115.39)",
+          "oklch(60.71% 0.18091 115.39)",
+          "oklch(72.14% 0.18091 115.39)",
+          "oklch(83.57% 0.18091 115.39)",
+          "oklch(95.00% 0.18091 115.39)"
+        ]
+      },
+      "orange": {
+        "role": "secondary",
+        "displayName": "Labs orange",
+        "tonalRamp": [
+          "oklch(15.00% 0.21359 40.06)",
+          "oklch(26.43% 0.21359 40.06)",
+          "oklch(37.86% 0.21359 40.06)",
+          "oklch(49.29% 0.21359 40.06)",
+          "oklch(60.71% 0.21359 40.06)",
+          "oklch(72.14% 0.21359 40.06)",
+          "oklch(83.57% 0.21359 40.06)",
+          "oklch(95.00% 0.21359 40.06)"
+        ]
+      },
+      "purple": {
+        "role": "tertiary",
+        "displayName": "Labs purple",
+        "tonalRamp": [
+          "oklch(15.00% 0.07113 302.51)",
+          "oklch(26.43% 0.07113 302.51)",
+          "oklch(37.86% 0.07113 302.51)",
+          "oklch(49.29% 0.07113 302.51)",
+          "oklch(60.71% 0.07113 302.51)",
+          "oklch(72.14% 0.07113 302.51)",
+          "oklch(83.57% 0.07113 302.51)",
+          "oklch(95.00% 0.07113 302.51)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Charcoal background",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel charcoal",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "panel-2": {
+        "role": "neutral",
+        "displayName": "Control charcoal",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Divider gray",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Warm white",
+        "tonalRamp": [
+          "oklch(15.00% 0.00530 106.50)",
+          "oklch(26.43% 0.00530 106.50)",
+          "oklch(37.86% 0.00530 106.50)",
+          "oklch(49.29% 0.00530 106.50)",
+          "oklch(60.71% 0.00530 106.50)",
+          "oklch(72.14% 0.00530 106.50)",
+          "oklch(83.57% 0.00530 106.50)",
+          "oklch(95.00% 0.00530 106.50)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted gray",
+        "tonalRamp": [
+          "oklch(15.00% 0.00997 106.65)",
+          "oklch(26.43% 0.00997 106.65)",
+          "oklch(37.86% 0.00997 106.65)",
+          "oklch(49.29% 0.00997 106.65)",
+          "oklch(60.71% 0.00997 106.65)",
+          "oklch(72.14% 0.00997 106.65)",
+          "oklch(83.57% 0.00997 106.65)",
+          "oklch(95.00% 0.00997 106.65)"
+        ]
+      },
+      "bevel-light": {
+        "role": "neutral",
+        "displayName": "Bevel light",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "bevel-dark": {
+        "role": "neutral",
+        "displayName": "Bevel dark",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "collar": {
+        "role": "neutral",
+        "displayName": "Collar white",
+        "tonalRamp": [
+          "oklch(15.00% 0.00661 106.52)",
+          "oklch(26.43% 0.00661 106.52)",
+          "oklch(37.86% 0.00661 106.52)",
+          "oklch(49.29% 0.00661 106.52)",
+          "oklch(60.71% 0.00661 106.52)",
+          "oklch(72.14% 0.00661 106.52)",
+          "oklch(83.57% 0.00661 106.52)",
+          "oklch(95.00% 0.00661 106.52)"
+        ]
+      },
+      "pocket": {
+        "role": "neutral",
+        "displayName": "Pocket gray",
+        "tonalRamp": [
+          "oklch(15.00% 0.01671 52.51)",
+          "oklch(26.43% 0.01671 52.51)",
+          "oklch(37.86% 0.01671 52.51)",
+          "oklch(49.29% 0.01671 52.51)",
+          "oklch(60.71% 0.01671 52.51)",
+          "oklch(72.14% 0.01671 52.51)",
+          "oklch(83.57% 0.01671 52.51)",
+          "oklch(95.00% 0.01671 52.51)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Pixel display",
+        "purpose": "Brand, headings, primary actions, and result scores."
+      },
+      "pixel-label": {
+        "displayName": "Pixel label",
+        "purpose": "Repeated section headings and primary action labels."
+      },
+      "body": {
+        "displayName": "Monospace body",
+        "purpose": "Instructions, controls, table values, units, and canvas labels."
+      },
+      "metric": {
+        "displayName": "Pixel metric",
+        "purpose": "Repeated changing statistics."
+      }
+    },
+    "shadows": [
+      {
+        "name": "moving-garment",
+        "value": "shadowColor: rgba(0,0,0,0.6); shadowBlur: 16; shadowOffsetY: 6",
+        "purpose": "Canvas-only shadow while a garment moves during rearrangement."
+      }
+    ],
+    "motion": [
+      {
+        "name": "toast-fade",
+        "value": "opacity 0.15s",
+        "purpose": "Toast appearance and disappearance."
+      },
+      {
+        "name": "low-time",
+        "value": "blink 1s steps(2, start) infinite; 50% opacity: 0.55",
+        "purpose": "Low-time statistic. Disabled by CSS reduced-motion preference."
+      },
+      {
+        "name": "garment-flight",
+        "value": "700ms per piece; 3200ms target sequence",
+        "purpose": "Existing canvas rearrangement timings."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "single-column",
+        "value": "980px"
+      },
+      {
+        "name": "order-grid",
+        "value": "480px"
+      },
+      {
+        "name": "canvas-label-rows",
+        "value": "600px"
+      }
+    ],
+    "previewNotes": "Tonal ramps are generated OKLCH preview strips, not additional shipped palette tokens. The 600px threshold measures canvas width, not viewport width. Queue SVG stands in for the source canvas preview using the same sleeve polygon."
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Lime pixel action for replay and the review countdown.",
+      "html": "<button class=\"ds-primary\">Jugar otra vez</button>",
+      "css": ".ds-primary{border:3px solid;border-color:#5e5e5e #141414 #141414 #5e5e5e;background:var(--panel-2,#2c2c2c);color:var(--text,#f2f2ee);padding:11px 12px;font:600 14px/1.5 \"IBM Plex Mono\",monospace;border-radius:0;cursor:pointer;background:var(--lime,#e9fb5a);color:#151515;border-color:#f3ff9a #879335 #879335 #f3ff9a;font:400 11px/1.8 \"Press Start 2P\",monospace;padding:14px}.ds-primary:hover:not(:disabled){background:#f3ff8a}.ds-primary:active:not(:disabled){border-color:#879335 #f3ff9a #f3ff9a #879335}.ds-primary:focus-visible {outline:2px solid var(--lime,#e9fb5a);outline-offset:4px;}.ds-primary:disabled{opacity:.4;cursor:default}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Neutral beveled control for rotation, undo, and shelf completion.",
+      "html": "<button class=\"ds-secondary\">Girar 180°</button>",
+      "css": ".ds-secondary{border:3px solid;border-color:#5e5e5e #141414 #141414 #5e5e5e;background:var(--panel-2,#2c2c2c);color:var(--text,#f2f2ee);padding:11px 12px;font:600 14px/1.5 \"IBM Plex Mono\",monospace;border-radius:0;cursor:pointer;}.ds-secondary:hover:not(:disabled){background:#393939}.ds-secondary:active:not(:disabled){border-color:#141414 #5e5e5e #5e5e5e #141414}.ds-secondary:focus-visible {outline:2px solid var(--lime,#e9fb5a);outline-offset:4px;}.ds-secondary:disabled{opacity:.4;cursor:default}"
+    },
+    {
+      "name": "Size control",
+      "kind": "custom",
+      "description": "Order-size stepper with a lime size name and tabular count.",
+      "html": "<div class=\"ds-size\"><b>M</b><button aria-label=\"menos M\">−</button><span>2</span><button aria-label=\"más M\">+</button></div>",
+      "css": ".ds-size{display:flex;align-items:center;gap:2px;background:var(--panel,#242424);border:2px solid var(--line,#3a3a3a);padding:3px;font:400 14px/1.5 \"IBM Plex Mono\",monospace;color:var(--text,#f2f2ee)}.ds-size b{width:26px;text-align:center;font-size:13px;color:var(--lime,#e9fb5a)}.ds-size span{min-width:18px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}.ds-size button{width:28px;height:30px;border:2px solid;border-color:#5e5e5e #171717 #171717 #5e5e5e;background:var(--panel-2,#2c2c2c);color:inherit;font:inherit;font-size:16px;line-height:1;cursor:pointer}.ds-size button:hover{background:#393939}.ds-size button:active:not(:disabled){border-color:#141414 #5e5e5e #5e5e5e #141414}.ds-size button:focus-visible {outline:2px solid var(--lime,#e9fb5a);outline-offset:4px;}.ds-size button:disabled{opacity:.35;cursor:default}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat square panel with a purple pixel section heading.",
+      "html": "<section class=\"ds-card\"><h2>Siguiente</h2><p>Cantidad por pieza y talla, incluida la pieza en la mano.</p></section>",
+      "css": ".ds-card{background:var(--panel,#242424);color:var(--text,#f2f2ee);border:2px solid var(--line,#3a3a3a);padding:16px;border-radius:0;font:400 14px/1.5 \"IBM Plex Mono\",monospace}.ds-card h2{margin:0 0 16px;font:400 11px/1.7 \"Press Start 2P\",monospace;text-transform:uppercase;color:var(--purple,#c6b3e4)}.ds-card p{margin:10px 0 0;color:var(--muted,#a3a39c);font-size:12px;line-height:1.45}"
+    },
+    {
+      "name": "Queue tile",
+      "kind": "button",
+      "refersTo": "queue-tile",
+      "description": "A grouped piece and size, with remaining quantity and explicit selection. The inline SVG reproduces the sleeve polygon used by the canvas preview.",
+      "html": "<button class=\"ds-queue\" aria-pressed=\"true\" aria-label=\"Manga · M: 2 piezas restantes\"><svg viewBox=\"-8 -2 38 45\" aria-hidden=\"true\"><polygon points=\"8,1 22,0 22,40 8,39 3,32 0,20 3,8\" fill=\"#c6b3e4\" stroke=\"#141414\" stroke-width=\"1\"/></svg><span class=\"ds-count\">×2</span><span class=\"ds-label\">Manga · M</span></button>",
+      "css": ".ds-queue{position:relative;min-height:90px;width:100px;min-width:0;border:2px solid var(--line,#3a3a3a);background:var(--bg,#1c1c1c);color:var(--text,#f2f2ee);padding:18px 4px 6px;display:grid;justify-items:center;border-radius:0;font:400 14px/1.5 \"IBM Plex Mono\",monospace;cursor:pointer}.ds-queue svg{width:100%;height:44px;display:block}.ds-count{position:absolute;top:5px;right:7px;font:400 10px/1.4 \"Press Start 2P\",monospace;font-variant-numeric:tabular-nums}.ds-label{font-size:11px;line-height:1.4;overflow-wrap:anywhere}.ds-queue:hover:not(:disabled),.ds-queue[aria-pressed=\"true\"]{border-color:var(--lime,#e9fb5a)}.ds-queue[aria-pressed=\"true\"] .ds-count{color:var(--lime,#e9fb5a)}.ds-queue:focus-visible{outline:2px solid var(--lime,#e9fb5a);outline-offset:3px}.ds-queue:disabled{opacity:.4;cursor:default}"
+    },
+    {
+      "name": "Statistic",
+      "kind": "custom",
+      "refersTo": "stat",
+      "description": "Inset metric with a muted monospace label, lime pixel value, and smaller units.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-k\">Rollo usado</div><div class=\"ds-v\">0<small>cm</small></div></div>",
+      "css": ".ds-stat{background:var(--bg,#1c1c1c);padding:12px 10px;border-radius:0;font-family:\"IBM Plex Mono\",monospace}.ds-k{font-size:11px;color:var(--muted,#a3a39c);font-weight:600;letter-spacing:.04em}.ds-v{font:400 20px/1.6 \"Press Start 2P\",monospace;font-variant-numeric:tabular-nums;margin-top:6px;color:var(--lime,#e9fb5a)}.ds-v small{font:400 12px \"IBM Plex Mono\",monospace;color:var(--muted,#a3a39c);margin-left:4px}.ds-v.ds-low{color:var(--orange,#ff5a00);animation:ds-blink 1s steps(2,start) infinite}@keyframes ds-blink{50%{opacity:.55}}@media(prefers-reduced-motion:reduce){.ds-v.ds-low{animation:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Original Tetris with Labs colors",
+    "overview": "This records the user's approved retro refinement of the existing TelaTetris interface. Pixel headings, score numbers, and square beveled controls provide the arcade reference. The Labs palette and existing game composition remain the visual foundation.\n\nGarment shapes retain their actual outlines. The cloth roll, ruler, cutting lines, and piece quantities make the arrangement readable throughout play and comparison. Retro styling belongs to the interface around those measurements.",
+    "keyCharacteristics": [
+      "Pixel display text paired with monospace instructions and measurements.",
+      "Lime, orange, and purple on layered charcoal backgrounds.",
+      "Square panels, arcade bevels, and visible selection borders.",
+      "One cloth roll retained across play, rearrangement, and results."
+    ],
+    "rules": [
+      {
+        "name": "The Same Piece Color Rule",
+        "body": "Keep each garment type's fill consistent between its queue preview and the board. Orange may override the fill to show an invalid placement.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pixel Hierarchy Rule",
+        "body": "Use the pixel family for headings, primary actions, counts, and scores. Keep instructions, garment names, table values, units, and canvas measurements in IBM Plex Mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Arcade Bevel Rule",
+        "body": "Use opposing light and dark borders for board and control depth; reverse the control bevel on press.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep Labs colors consistent across interface and garment previews.",
+      "**Do** pair pixel headings and scores with monospace explanations and measurements.",
+      "**Do** retain square corners, directional bevels, lime keyboard focus, and visible queue selection.",
+      "**Do** preserve readable cut labels on separate rows when the canvas is narrow."
+    ],
+    "donts": [
+      "**Don't** replace garment outlines with Tetris blocks to communicate the retro style.",
+      "**Don't** expose the validator or its check results in the interface; validation remains internal.",
+      "**Don't** change the existing composition or gameplay as part of a styling extension."
+    ]
+  }
+}

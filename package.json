@@ -8,6 +8,9 @@
   "private": true,
   "scripts": {
     "test": "node --test test/*.test.js",
+    "build:planner": "node scripts/build-planner.cjs",
+    "test:planner:preview": "node scripts/verify-planner.cjs --asset-preview",
+    "test:planner:browser": "node scripts/verify-planner.cjs",
     "example": "node connectors/sheet-metal/sheet-metal.js"
   }
 }

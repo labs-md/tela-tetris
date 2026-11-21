@@ -1,10 +1,11 @@
 /*
  * TelaTetris game.
+ *   start  → a floating, turning T-shirt and EMPEZAR
  *   intro  → the order's T-shirt comes apart and its pieces fly into the piece bank
  *   play   → the player lays out the order
  *   review → the player's roll length is shown; the algorithm searches meanwhile
  *   move   → the player's own pieces fly into the algorithm's layout
- *   result → roll saved
+ *   result → money saved: each roll length is the fabric to buy, priced in GTQ
  */
 (() => {
   'use strict';
@@ -42,6 +43,7 @@
   let hatch = null;
   let intro = null;          // attract sequence state, or null
   const shirtIcons = {};     // size → canvas in the order card
+  let refocus = null, refocusEl = null; // keeps keyboard focus on an order stepper across re-renders
   const sizeCards = {};      // size → its order card
   const tileEls = new Map(); // "<type>-<size>" → its piece-bank tile
 
@@ -173,7 +175,7 @@
     g.closePath();
   }
 
-  function strokeCollar(g, pts, s, cx, cy, sc, style) {
+  function strokeCollar(g, pts, s, cx, cy, sc, style, outline = 3) {
     g.beginPath();
     pts.forEach(([x, y], i) => {
       const X = cx + x * sc * s, Y = cy + y * sc * s;
@@ -185,7 +187,7 @@
       g.setLineDash([2, 2]); g.strokeStyle = COL.dim; g.lineWidth = 1; g.stroke(); g.setLineDash([]);
       return;
     }
-    g.strokeStyle = COL.ink; g.lineWidth = 4 * sc * s + 3; g.stroke();
+    g.strokeStyle = COL.ink; g.lineWidth = 4 * sc * s + outline; g.stroke();
     g.strokeStyle = TYPES.cuello.color; g.lineWidth = Math.max(1, 4 * sc * s - 1); g.stroke();
   }
 
@@ -297,6 +299,10 @@
       plus.disabled = counts[size] >= MAX_PER_SIZE;
       minus.onclick = () => changeOrder(size, -1);
       plus.onclick = () => changeOrder(size, +1);
+      if (refocus && refocus.size === size) {
+        const target = (refocus.d > 0 ? plus : minus).disabled ? (refocus.d > 0 ? minus : plus) : (refocus.d > 0 ? plus : minus);
+        refocusEl = target;
+      }
       stepper.appendChild(minus); stepper.appendChild(n); stepper.appendChild(plus);
       el.appendChild(icon); el.appendChild(name); el.appendChild(stepper);
       box.appendChild(el);
@@ -310,7 +316,11 @@
     if (G && (G.phase === 'play' || G.phase === 'review') && G.placements.length > 0 &&
         !confirm('Cambiar el pedido reinicia el tendido. ¿Continuar?')) return;
     counts[size] = Math.max(0, Math.min(MAX_PER_SIZE, counts[size] + d));
+    const own = focusedControl();
+    refocus = own ? { size, d } : null;
     newGame();
+    if (refocusEl && refocusEl.focus) refocusEl.focus();
+    refocus = null; refocusEl = null;
   }
 
   // -------------------------------------------------------- held piece ---
@@ -427,10 +437,13 @@
   function rotate() {
     const h = G.held;
     if (!h) return;
+    // One quarter turn clockwise, about the piece's centre.
     const rs = G.pieces[h.id].rotations;
+    const before = variant(h.id, h.rot);
     h.rot = rs[(rs.indexOf(h.rot) + 1) % rs.length];
+    const after = variant(h.id, h.rot);
     sfx('rotate');
-    setHeld(h.x, h.y, true);
+    setHeld(h.x + Math.round((before.w - after.w) / 2), h.y + Math.round((before.h - after.h) / 2), true);
   }
 
   function nextPiece() {
@@ -440,6 +453,18 @@
     spawn(G.queue.shift(), { x: h.x, y: h.y });
     sfx('select');
     updateSide();
+  }
+
+  /** 1–5: hold that piece type; pressing it again moves to the next size that still has one. */
+  function pickType(type) {
+    const pending = (id) => G.queue.includes(id) || (G.held && G.held.id === id);
+    const groups = [...G.groups.values()].filter(({ piece, ids }) => piece.data.type === type && ids.some(pending));
+    if (!groups.length) { sfx('bad'); toast(`Ya no quedan piezas: ${TYPES[type].name.toLowerCase()}`); return; }
+    const cur = groups.findIndex(({ ids }) => G.held && ids.includes(G.held.id));
+    if (cur >= 0 && groups.length === 1) return;
+    const next = groups[(cur + 1) % groups.length];
+    const i = G.queue.findIndex((id) => next.ids.includes(id));
+    if (i >= 0) selectFromQueue(i);
   }
 
   function selectFromQueue(i) {
@@ -587,9 +612,17 @@
   // ------------------------------------- move: the algorithm rearranges ---
 
   function startMove() {
-    if (!G.searching) return;
+    if (G.phase !== 'review' || !G.searching) return;
     G.phase = 'move';
     G.token++;
+    // The human layout is final here; review undo can no longer change it.
+    try {
+      if (window.TelaTetrisScores) {
+        Promise.resolve(window.TelaTetrisScores.record(G.human.length)).catch(() => {
+          console.warn('The human score could not be saved. The game will continue.');
+        });
+      }
+    } catch { console.warn('The human score could not be saved. The game will continue.'); }
     G.result = G.S.result();
     G.final = G.result.placements.map(fromJob);
     G.from = new Map(G.placements.map((p) => [p.id, p]));
@@ -600,11 +633,11 @@
     showPanel('solve');
     setStep(4);
     sfx('go');
-    shout('TURNO DE TELATETRIS', { color: COL.text, sub: 'Mismas piezas, mismo hilo, misma separación.', dur: 1500 });
+    shout('TURNO DE TELATETRIS', { color: COL.text, sub: 'Mismas piezas, mismos giros, misma separación.', dur: 1500 });
     $('solveIters').textContent = G.result.stats.iterations.toLocaleString('en-US');
     $('solveHuman').textContent = `${G.human.length} cm`;
     $('solveBest').textContent = `${G.result.length} cm`;
-    setHeading('TelaTetris reacomoda tus piezas', 'Mismas piezas, mismo hilo, misma separación de corte.');
+    setHeading('TelaTetris reacomoda tus piezas', 'Mismas piezas, mismos giros, misma separación de corte.');
     resize();
 
     const anim = () => {
@@ -629,13 +662,18 @@
       const p = Math.max(0, Math.min(1, (t - k * G.stagger) / MOVE_MS));
       const e = ease(p);
       if (p >= 1) return { id: to.id, rot: to.rot, x: to.x, y: to.y, angle: 0, state: 'done' };
+      // A quarter turn swaps width and height, so travel centre to centre.
+      const vf = variant(to.id, from.rot), vt = variant(to.id, to.rot);
+      const cx = lerp(from.x + vf.w / 2, to.x + vt.w / 2, e);
+      const cy = lerp(from.y + vf.h / 2, to.y + vt.h / 2, e);
+      const turn = ((((to.rot - from.rot) % 360) + 540) % 360) - 180;
       return {
         id: to.id,
         rot: from.rot,
-        x: from.x + (to.x - from.x) * e,
-        y: from.y + (to.y - from.y) * e,
-        angle: ((to.rot - from.rot) * Math.PI / 180) * e,
-        state: p <= 0 ? 'waiting' : p >= 1 ? 'done' : 'moving',
+        x: cx - vf.w / 2,
+        y: cy - vf.h / 2,
+        angle: (turn * Math.PI / 180) * e,
+        state: p <= 0 ? 'waiting' : 'moving',
       };
     });
   }
@@ -650,36 +688,39 @@
     const shelf = G.result.baseline;
     const human = G.human;
     const saved = human.length - G.algo.length;
-    const pct = human.length ? (saved / human.length) * 100 : 0;
     const shirts = totalShirts();
+
+    // Step 1 of the engine: each layout's roll length is the fabric to buy.
+    const buy = (len) => Garments.purchase(len);
+    const me = buy(human.length), tt = buy(G.algo.length), sh = buy(shelf.length);
+    const money = me.gtq - tt.gtq;
+    const yd = Math.abs(me.yards - tt.yards);
+    const price = `a ${gtq(Garments.PRICE_PER_YARD_GTQ, 0)} la yarda`;
 
     const card = $('savedCard');
     card.classList.toggle('lose', saved < 0);
     if (saved > 0) {
-      // Fabric saved over 1,000 identical spreads, in T-shirts at TelaTetris's roll per shirt.
-      const extra = Math.floor((saved * 1000 * shirts) / G.algo.length);
       card.innerHTML = `
-        <div class="k">Rollo ahorrado</div>
-        <div class="big" id="cntCm">0<small>cm</small></div>
-        <div class="pct" id="cntPct">0%</div>
-        <div class="note">En 1,000 tendidos iguales: <b>${fmt(saved * 10)} m</b> de tela.</div>
-        <div class="shirts">${SHIRT_SVG}<span><strong>+${fmt(extra)}</strong>playeras más con la misma tela</span></div>`;
-      countUp($('cntCm'), saved, (v) => `${Math.round(v)}<small>cm</small>`);
-      countUp($('cntPct'), pct, (v) => `${v.toFixed(1)}% menos rollo`);
+        <div class="k">Dinero ahorrado en tela</div>
+        <div class="big" id="cntQ">Q0.00</div>
+        <div class="pct">${yd.toFixed(2)} yd menos de tela</div>
+        <div class="note">En 1,000 pedidos iguales: <b>${gtq(money * 1000, 0)}</b> ahorrados (${price}).</div>
+        <div class="shirts">${SHIRT_SVG}<span><strong>${gtq(money / shirts)}</strong>menos de tela por playera</span></div>`;
+      countUp($('cntQ'), money, (v) => gtq(v));
       sfx('win');
       shout('¡AHORRO!', { kind: 'big', burst: true, dur: 1200 });
     } else if (saved === 0) {
       card.innerHTML = `
         <div class="k">Empate</div>
-        <div class="big">0<small>cm</small></div>
-        <div class="note">Tu tendido mide lo mismo que el de TelaTetris. Muy bien.</div>`;
+        <div class="big">Q0.00</div>
+        <div class="note">Tu tendido cuesta lo mismo que el de TelaTetris. Muy bien.</div>`;
       sfx('win');
       shout('¡EMPATE!', { kind: 'big', dur: 1100 });
     } else {
       card.innerHTML = `
         <div class="k">Le ganaste a TelaTetris</div>
-        <div class="big">${-saved}<small>cm</small></div>
-        <div class="pct">${(-pct).toFixed(1)}% menos rollo</div>
+        <div class="big">${gtq(-money)}</div>
+        <div class="pct">${yd.toFixed(2)} yd menos de tela</div>
         <div class="note">Buen ojo. Así medimos el ahorro: contra el mejor tendido, no contra el peor.</div>`;
       sfx('lose');
       shout('¡GANASTE!', { kind: 'big', burst: true, color: COL.orange, dur: 1200 });
@@ -687,16 +728,19 @@
 
     const shown = Math.min(G.elapsed, TURN_MS);
     const mins = Math.floor(shown / 60000), secs = Math.floor((shown % 60000) / 1000);
+    const row = (cls, name, b) => `<tr class="${cls}"><td>${name}</td><td>${b.yards.toFixed(2)} yd</td><td>${gtq(b.gtq)}</td></tr>`;
     $('cmpTable').innerHTML = `
-      <tr><th></th><th>Rollo</th><th>Aprovecha</th></tr>
-      <tr class="me"><td>Tú <span>(${mins}:${String(secs).padStart(2, '0')}${G.timeUp && G.autoIds.size ? ` · ${G.autoIds.size} por estantes` : ''})</span></td><td>${human.length} cm</td><td>${pc(human.utilization)}</td></tr>
-      <tr class="tt"><td>TelaTetris</td><td>${G.algo.length} cm</td><td>${pc(G.algo.utilization)}</td></tr>
-      <tr class="ref"><td>Por estantes</td><td>${shelf.length} cm</td><td>${pc(shelf.utilization)}</td></tr>`;
+      <tr><th></th><th>Tela a comprar</th><th>Costo</th></tr>
+      ${row('me', `Tú <span>(${mins}:${String(secs).padStart(2, '0')}${G.timeUp && G.autoIds.size ? ` · ${G.autoIds.size} por estantes` : ''})</span>`, me)}
+      ${row('tt', 'TelaTetris', tt)}
+      ${row('ref', 'Por estantes', sh)}`;
+    $('cmpNote').textContent = `Rollo de ${ROLL_W} cm de ancho, ${price}.`;
 
     showPanel('result');
     setStep(5);
-    setHeading(saved > 0 ? 'Las mismas playeras, menos tela.' : 'Las mismas playeras.',
-      `Tú: ${human.length} cm · TelaTetris: ${G.algo.length} cm`);
+    if (focusedControl() === null && $('bAgain').focus) $('bAgain').focus({ preventScroll: true });
+    setHeading(saved > 0 ? 'Mismas playeras, menos gasto en tela.' : 'Las mismas playeras.',
+      `Tú: ${gtq(me.gtq)} · TelaTetris: ${gtq(tt.gtq)} de tela`);
     requestRender();
   }
 
@@ -736,7 +780,12 @@
     // Matrix: one row per size, one column per pattern piece.
     if (pending.size) {
       q.appendChild(div('qhead', ''));
-      for (const [type] of Garments.GARMENT) q.appendChild(div('qhead', TYPES[type].name));
+      Garments.GARMENT.forEach(([type], k) => {
+        const head = div('qhead');
+        head.innerHTML = `<span class="qk">${k + 1}</span>${TYPES[type].name}`;
+        head.title = `Tecla ${k + 1}: ${TYPES[type].name}`;
+        q.appendChild(head);
+      });
     }
     let rowSize = null;
     for (const { piece, ids } of G.groups.values()) {
@@ -970,7 +1019,7 @@
     const humanLen = G.human.length;
     const done = G.phase === 'result';
     if (done) {
-      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.yellow, 'ROLLO AHORRADO');
+      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.yellow, 'AHORRADOS');
       else if (G.algo.length > humanLen) box(g, ox, oy, s, { from: humanLen, to: G.algo.length }, COL.orange, 'VENTAJA TUYA');
     }
 
@@ -1104,10 +1153,11 @@
     g.font = `400 ${Math.round(30 * k)}px ${PIX}`;
     g.fillText(`${h.length} cm`, cx, y + 76 * k);
     g.font = `700 14px ${FONT}`;
-    g.fillText(`${pc(h.utilization)} de la tela aprovechada`, cx, y + 104 * k);
+    const b = Garments.purchase(h.length);
+    g.fillText(`${b.yards.toFixed(2)} yd · ${gtq(b.gtq)} de tela`, cx, y + 104 * k);
     g.font = `600 12px ${FONT}`;
     const n = G.timeUp ? G.autoIds.size : 0;
-    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(1 - h.utilization)} se va a desperdicio`, cx, y + 124 * k);
+    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(h.utilization)} de la tela aprovechada`, cx, y + 124 * k);
     // countdown bar
     const p = G.reviewT0 ? Math.min(1, (performance.now() - G.reviewT0) / REVIEW_MS) : 0;
     g.fillStyle = 'rgba(28,28,27,0.25)';
@@ -1130,19 +1180,21 @@
       g.fillStyle = color;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      const big = Math.round(Math.min(24, Math.max(10, w / 7)));
+      const big = Math.round(Math.min(24, Math.max(10, w / 9)));
       g.font = `400 ${big}px ${PIX}`;
-      g.fillText(`${r.to - r.from} cm`, x + w / 2, oy + H / 2 - 12);
+      const cost = Garments.purchase(r.to - r.from).gtq;
+      g.fillText(gtq(cost), x + w / 2, oy + H / 2 - 12);
       g.font = `400 8px ${PIX}`;
       g.fillText(label, x + w / 2, oy + H / 2 + big / 2 + 8);
       g.textAlign = 'left';
     }
   }
 
-  /** Draw a piece turned by `angle` around its own centre (for 0°→180° flips). */
+  /** Draw a piece turned by `angle` around its own centre (quarter and half turns). */
   function drawPieceRotated(g, piece, rot, px, py, s, angle, o) {
     if (!angle) { drawPiece(g, piece, rot, px, py, s, o); return; }
-    const hw = (piece.w * s) / 2, hh = (piece.h * s) / 2;
+    const v = Arrange.variantOf(piece, rot);
+    const hw = (v.w * s) / 2, hh = (v.h * s) / 2;
     g.save();
     g.translate(px + hw, py + hh);
     g.rotate(angle);
@@ -1175,7 +1227,7 @@
       g.stroke();
       g.setLineDash([]);
       // ✕ in the middle
-      const cx = px + (piece.w * s) / 2, cy = py + (piece.h * s) / 2, r = Math.min(10, piece.w * s / 4, piece.h * s / 4);
+      const cx = px + (v.w * s) / 2, cy = py + (v.h * s) / 2, r = Math.min(10, v.w * s / 4, v.h * s / 4);
       g.beginPath(); g.moveTo(cx - r, cy - r); g.lineTo(cx + r, cy + r); g.moveTo(cx + r, cy - r); g.lineTo(cx - r, cy + r);
       g.stroke();
       return;
@@ -1196,23 +1248,31 @@
     g.lineWidth = o.thin ? 1.25 : 2;
     g.stroke();
 
-    // grain line: double arrow along x
-    if (piece.data.arrow && piece.w * s > 26) {
-      const cxOff = piece.data.type === 'manga' ? (rot === 0 ? 0.58 : 0.42) : 0.55;
-      const cx = px + piece.w * s * (rot === 0 ? cxOff : 1 - cxOff);
-      const cy = py + (piece.h * s) / 2;
-      const half = Math.min(piece.w * 0.22, 14) * s;
+    // grain line: a double arrow along the piece's grain, which turns with it
+    const vert = rot % 180 !== 0;
+    const along = vert ? v.h : v.w, across = vert ? v.w : v.h;
+    if (piece.data.arrow && along * s > 26) {
+      const off0 = piece.data.type === 'manga' ? 0.58 : 0.55;
+      const off = rot === 0 || rot === 90 ? off0 : 1 - off0;
+      const cx = vert ? px + (v.w * s) / 2 : px + v.w * s * off;
+      const cy = vert ? py + v.h * s * off : py + (v.h * s) / 2;
+      const half = Math.min(along * 0.22, 14) * s;
       const hs = Math.max(3, Math.min(6, s * 2));
+      g.save();
+      g.translate(cx, cy);
+      if (vert) g.rotate(Math.PI / 2);
       g.strokeStyle = COL.olive; g.fillStyle = COL.olive; g.lineWidth = Math.max(1, Math.min(1.6, s * 0.6));
-      g.beginPath(); g.moveTo(cx - half, cy); g.lineTo(cx + half, cy); g.stroke();
+      g.beginPath(); g.moveTo(-half, 0); g.lineTo(half, 0); g.stroke();
       g.beginPath();
-      g.moveTo(cx - half, cy); g.lineTo(cx - half + hs * 1.4, cy - hs); g.lineTo(cx - half + hs * 1.4, cy + hs); g.closePath();
-      g.moveTo(cx + half, cy); g.lineTo(cx + half - hs * 1.4, cy - hs); g.lineTo(cx + half - hs * 1.4, cy + hs); g.closePath();
+      g.moveTo(-half, 0); g.lineTo(-half + hs * 1.4, -hs); g.lineTo(-half + hs * 1.4, hs); g.closePath();
+      g.moveTo(half, 0); g.lineTo(half - hs * 1.4, -hs); g.lineTo(half - hs * 1.4, hs); g.closePath();
       g.fill();
-      if (piece.h * s > 50 && !o.noLabel) {
+      g.restore();
+      if (across * s > 50 && !o.noLabel) {
+        g.fillStyle = COL.olive;
         g.font = `700 ${Math.max(9, Math.min(12, s * 4))}px ${FONT}`;
-        g.textAlign = 'center'; g.textBaseline = 'top';
-        g.fillText(piece.data.size, cx, cy + hs + 3);
+        if (vert) { g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(piece.data.size, cx + hs + 4, cy); }
+        else { g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(piece.data.size, cx, cy + hs + 3); }
         g.textAlign = 'left';
       }
     }
@@ -1561,9 +1621,109 @@
     });
   }
 
+  // ------------------------------------------------------- start screen ---
+  // A pixel T-shirt floats and turns; EMPEZAR (or Space) leads into the journey.
+
+  let startOn = false;
+  const BACK_COLLAR = [[-8.5, -35.2], [0, -33.4], [8.5, -35.2]];
+  const SPARKS = [[0.14, 0.22], [0.86, 0.3], [0.2, 0.74], [0.8, 0.7], [0.5, 0.06], [0.07, 0.48], [0.93, 0.52]];
+
+  function showStart() {
+    const el = $('start');
+    if (!el || !fxg) return false;
+    el.hidden = false;
+    startOn = true;
+    setStep(1);
+    const c = $('startShirt');
+    const off = document.createElement('canvas');
+    const t0 = performance.now();
+    const loop = () => {
+      if (!startOn) return;
+      drawStartShirt(c, off, performance.now() - t0);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    if ($('bStart').focus) $('bStart').focus();
+    return true;
+  }
+
+  function beginFromStart() {
+    if (!startOn) return;
+    startOn = false;
+    sfx('start');
+    const el = $('start');
+    el.classList.add('leaving');
+    setTimeout(() => { el.hidden = true; el.classList.remove('leaving'); startIntro(); }, reducedMotion ? 0 : 320);
+  }
+
+  /** Drawn small and scaled up without smoothing, so the shirt stays pixel art. */
+  function drawStartShirt(c, off, t) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const PX = 4;
+    const lw = Math.ceil(w / PX), lh = Math.ceil(h / PX);
+    if (off.width !== lw || off.height !== lh) { off.width = lw; off.height = lh; }
+    const o = off.getContext('2d');
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(0, 0, lw, lh);
+
+    const turn = reducedMotion ? 0.45 : t / 1150;
+    const cos = Math.cos(turn);
+    const sx = Math.sign(cos || 1) * Math.max(0.06, Math.abs(cos));
+    const bob = reducedMotion ? 0 : Math.sin(t / 480) * 2.4;
+    const s = Math.min((lw * 0.9) / 94, (lh * 0.74) / 74);
+    const cx = lw / 2, cy = lh * 0.45;
+
+    // floor shadow: smaller when the shirt floats up or turns edge-on
+    o.fillStyle = 'rgba(0,0,0,0.5)';
+    o.beginPath();
+    o.ellipse(cx, lh * 0.9, lw * 0.3 * (0.55 + 0.45 * Math.abs(cos)) * (1 - bob * 0.03), lh * 0.035, 0, 0, Math.PI * 2);
+    o.fill();
+
+    o.save();
+    o.translate(cx, cy + bob);
+    o.scale(sx, 1);
+    if (cos >= 0) {
+      drawShirt(o, 0, 0, s, 1, () => 'fill', 1);
+    } else {
+      // seen from behind: sleeves, the back panel and the back of the collar
+      for (const part of PARTS) {
+        if (part.id === 'delantero' || part.id === 'bolsillo') continue;
+        if (part.type === 'cuello') { strokeCollar(o, BACK_COLLAR, s, 0, 0, 1, 'fill', 1.5); continue; }
+        partPath(o, part.type, WORN[part.id], s, 0, 0);
+        fillPart(o, part.type, 'fill', 1);
+      }
+    }
+    // turn shading
+    o.globalCompositeOperation = 'source-atop';
+    o.fillStyle = `rgba(20,20,19,${(1 - Math.abs(cos)) * 0.5})`;
+    o.fillRect(-lw, -lh, lw * 2, lh * 2);
+    o.restore();
+    o.globalCompositeOperation = 'source-over';
+
+    // twinkles
+    SPARKS.forEach(([fx, fy], i) => {
+      const on = reducedMotion || Math.floor(t / 260 + i * 1.7) % 3 === 0;
+      if (!on) return;
+      const x = Math.round(fx * lw), y = Math.round(fy * lh);
+      o.fillStyle = i % 2 ? COL.yellow : COL.orange;
+      o.fillRect(x, y - 1, 1, 3);
+      o.fillRect(x - 1, y, 3, 1);
+    });
+
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(off, 0, 0, lw * PX, lh * PX);
+  }
+
   // ----------------------------------------------------------- input ---
 
   let pointer = null;   // last pointer position in cm, or null
+  let lastWheel = 0;
 
   function toCm(e) {
     const r = canvas.getBoundingClientRect();
@@ -1599,7 +1759,10 @@
     endIntro();
   }, true);
   window.addEventListener('click', (e) => {
-    if (performance.now() - swallowClick < 600) { e.preventDefault(); e.stopPropagation(); swallowClick = 0; }
+    if (performance.now() - swallowClick < 600) { e.preventDefault(); e.stopPropagation(); swallowClick = 0; return; }
+    // After a mouse click, hand the keyboard back to the board (keyboard clicks have detail 0).
+    const b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (b && e.detail > 0) setTimeout(() => b.blur(), 0);
   }, true);
   canvas.addEventListener('pointerdown', (e) => {
     if (!interactive()) return;
@@ -1622,6 +1785,9 @@
   canvas.addEventListener('wheel', (e) => {
     if (!G || intro || G.phase !== 'play' || !G.held) return;
     e.preventDefault();
+    const now = performance.now();
+    if (now - lastWheel < 220) return;   // trackpads send bursts; one quarter turn each
+    lastWheel = now;
     rotate();
   }, { passive: false });
 
@@ -1653,15 +1819,32 @@
     else toast('La intro se ve antes de empezar o al final');
   }
 
-  const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'r', 'R', 'c', 'C', 'z', 'Z', 'Backspace'];
+  const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'r', 'R', 'c', 'C', 'z', 'Z', 'Backspace',
+    '1', '2', '3', '4', '5'];
+
+  /** A button the player reached with Tab keeps Enter and Space for itself. */
+  function focusedControl() {
+    const el = document.activeElement;
+    return el && el !== document.body && (el.tagName === 'BUTTON' || el.tagName === 'INPUT') ? el : null;
+  }
+
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const own = focusedControl();
+    if (own && (e.key === 'Enter' || e.key === ' ')) return;
+    if (own && e.key === 'Escape') { own.blur(); return; }
     if (e.key === 'm' || e.key === 'M') { toggleSound(); return; }
+    if (startOn) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); beginFromStart(); }
+      return;
+    }
     if (intro) {
       if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endIntro(); }
       return;
     }
     if (e.key === 'h' || e.key === 'H') { help(); return; }
+    if (G.phase === 'move' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); G.moveT0 = -1e9; return; }
+    if (G.phase === 'result' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); newGame(); sfx('start'); return; }
     if (!interactive() || !KEYS.includes(e.key)) return;
     e.preventDefault();
     pointer = null;
@@ -1682,6 +1865,7 @@
       case 'Enter': if (h) place(); break;
       case 'r': case 'R': rotate(); break;
       case 'c': case 'C': nextPiece(); break;
+      case '1': case '2': case '3': case '4': case '5': pickType(Garments.GARMENT[+e.key - 1][0]); break;
       default: undo(); break;   // z, Z, Backspace
     }
   });
@@ -1693,6 +1877,7 @@
   $('bFinish').onclick = () => { if (G.phase === 'review') startMove(); };
   $('bAgain').onclick = () => { newGame(); sfx('start'); };
   $('bHelp').onclick = help;
+  $('bStart').onclick = beginFromStart;
   $('bSound').onclick = toggleSound;
   if (!Sound.on) { $('bSound').setAttribute('aria-pressed', 'false'); $('bSound').textContent = '♪ Off'; }
   window.addEventListener('resize', resize);
@@ -1719,10 +1904,10 @@
   }
 
   const pc = (x) => `${(x * 100).toFixed(1)}%`;
-  const fmt = (x) => Math.round(x).toLocaleString('en-US');
+  const gtq = (x, d = 2) => `Q${x.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { resize(); updateSide(); });
   newGame();
-  // Attract mode on load; ?intro=0 skips it (handy at a booth that restarts often).
-  if (typeof location !== 'undefined' && !/[?&]intro=0\b/.test(location.search)) startIntro();
+  // Start screen, then the journey; ?intro=0 skips both (handy at a booth that restarts often).
+  if (typeof location !== 'undefined' && !/[?&]intro=0\b/.test(location.search)) showStart();
 })();

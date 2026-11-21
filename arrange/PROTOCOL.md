@@ -19,7 +19,7 @@ An HTTP or queue transport would wrap `Arrange.run` the same way the CLI does: o
 
 ## Units and coordinates
 
-The connector chooses the unit (mm, cm, inches) and labels it in `units`. The engine never interprets the label and echoes it back. Every length in a request and a response is in that unit.
+The connector chooses the unit (mm, cm, inches) and labels it in `units`. The engine never interprets the label and echoes it back. Every length in a request and a response is in that unit. A purchasing connector converts `length` into the unit the material is sold in, for example cm of roll into yards of fabric.
 
 Internally the engine works on a grid of square cells `cellSize` units wide. A smaller cell gives tighter layouts and slower runs. Placements land on the grid, so every `x` and `y` in a response is a multiple of `cellSize`. Rough guide: the T-shirt demo uses 1 cm cells, the metal connector 5 mm cells.
 
@@ -120,7 +120,7 @@ The engine expands quantities in order and numbers the copies from 0. With items
 |---|---|
 | `status` | `ok`: every item placed, every rule kept. `incomplete`: some items are in `unplaced` (only with `maxLength`, or an evaluated layout that leaves items out). `rejected`: the layout breaks a rule (only from `evaluate`). `invalid`: the request is malformed. Read `errors`. |
 | `errors` | Only with `invalid`. One message per problem found, so a connector can show them all at once. |
-| `length` | Strip used, from 0 to the end of the last item. This is the number to minimize. |
+| `length` | Strip used, from 0 to the end of the last item. This is the number to minimize, and the amount of material to buy for the items. |
 | `utilization` | Total item area ÷ strip area used (`length × width`, minus blocked cells). |
 | `placements[]` | Where each item went. `x`, `y`: top-left of its bounding box. `polygon`: the placed outline, ready to draw or cut. `translate`: to transform the original outline yourself (for example a DXF block), rotate it by `rotation` about its own origin, then add `translate`. |
 | `unplaced` | Item indices that didn't fit. |

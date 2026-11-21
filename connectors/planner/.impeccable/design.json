@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-21T19:56:05.266966+00:00",
+  "title": "Design System: TelaTetris · Planificador",
+  "extensions": {
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Fondo claro",
+        "tonalRamp": [
+          "oklch(15% 0.0028 128.49)",
+          "oklch(26.43% 0.0028 128.49)",
+          "oklch(37.86% 0.0028 128.49)",
+          "oklch(49.29% 0.0028 128.49)",
+          "oklch(60.71% 0.0028 128.49)",
+          "oklch(72.14% 0.0028 128.49)",
+          "oklch(83.57% 0.0028 128.49)",
+          "oklch(95% 0.0028 128.49)"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Blanco",
+        "tonalRamp": [
+          "oklch(15% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95% 0.0000 89.88)"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Gris elevado",
+        "tonalRamp": [
+          "oklch(15% 0.0069 124.45)",
+          "oklch(26.43% 0.0069 124.45)",
+          "oklch(37.86% 0.0069 124.45)",
+          "oklch(49.29% 0.0069 124.45)",
+          "oklch(60.71% 0.0069 124.45)",
+          "oklch(72.14% 0.0069 124.45)",
+          "oklch(83.57% 0.0069 124.45)",
+          "oklch(95% 0.0069 124.45)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Regla suave",
+        "tonalRamp": [
+          "oklch(15% 0.0115 128.60)",
+          "oklch(26.43% 0.0115 128.60)",
+          "oklch(37.86% 0.0115 128.60)",
+          "oklch(49.29% 0.0115 128.60)",
+          "oklch(60.71% 0.0115 128.60)",
+          "oklch(72.14% 0.0115 128.60)",
+          "oklch(83.57% 0.0115 128.60)",
+          "oklch(95% 0.0115 128.60)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Gris de lectura",
+        "tonalRamp": [
+          "oklch(15% 0.0153 130.94)",
+          "oklch(26.43% 0.0153 130.94)",
+          "oklch(37.86% 0.0153 130.94)",
+          "oklch(49.29% 0.0153 130.94)",
+          "oklch(60.71% 0.0153 130.94)",
+          "oklch(72.14% 0.0153 130.94)",
+          "oklch(83.57% 0.0153 130.94)",
+          "oklch(95% 0.0153 130.94)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Carbón",
+        "tonalRamp": [
+          "oklch(15% 0.0019 106.55)",
+          "oklch(26.43% 0.0019 106.55)",
+          "oklch(37.86% 0.0019 106.55)",
+          "oklch(49.29% 0.0019 106.55)",
+          "oklch(60.71% 0.0019 106.55)",
+          "oklch(72.14% 0.0019 106.55)",
+          "oklch(83.57% 0.0019 106.55)",
+          "oklch(95% 0.0019 106.55)"
+        ]
+      },
+      "yellow": {
+        "role": "primary",
+        "displayName": "Amarillo LABS",
+        "tonalRamp": [
+          "oklch(15% 0.1805 115.73)",
+          "oklch(26.43% 0.1805 115.73)",
+          "oklch(37.86% 0.1805 115.73)",
+          "oklch(49.29% 0.1805 115.73)",
+          "oklch(60.71% 0.1805 115.73)",
+          "oklch(72.14% 0.1805 115.73)",
+          "oklch(83.57% 0.1805 115.73)",
+          "oklch(95% 0.1805 115.73)"
+        ]
+      },
+      "orange": {
+        "role": "secondary",
+        "displayName": "Naranja LABS",
+        "tonalRamp": [
+          "oklch(15% 0.2134 38.85)",
+          "oklch(26.43% 0.2134 38.85)",
+          "oklch(37.86% 0.2134 38.85)",
+          "oklch(49.29% 0.2134 38.85)",
+          "oklch(60.71% 0.2134 38.85)",
+          "oklch(72.14% 0.2134 38.85)",
+          "oklch(83.57% 0.2134 38.85)",
+          "oklch(95% 0.2134 38.85)"
+        ]
+      },
+      "selected": {
+        "role": "primary",
+        "displayName": "Selección suave",
+        "tonalRamp": [
+          "oklch(15% 0.0407 113.12)",
+          "oklch(26.43% 0.0407 113.12)",
+          "oklch(37.86% 0.0407 113.12)",
+          "oklch(49.29% 0.0407 113.12)",
+          "oklch(60.71% 0.0407 113.12)",
+          "oklch(72.14% 0.0407 113.12)",
+          "oklch(83.57% 0.0407 113.12)",
+          "oklch(95% 0.0407 113.12)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Oliva de foco",
+        "tonalRamp": [
+          "oklch(15% 0.0976 118.23)",
+          "oklch(26.43% 0.0976 118.23)",
+          "oklch(37.86% 0.0976 118.23)",
+          "oklch(49.29% 0.0976 118.23)",
+          "oklch(60.71% 0.0976 118.23)",
+          "oklch(72.14% 0.0976 118.23)",
+          "oklch(83.57% 0.0976 118.23)",
+          "oklch(95% 0.0976 118.23)"
+        ]
+      },
+      "control-line": {
+        "role": "neutral",
+        "displayName": "Borde de control",
+        "tonalRamp": [
+          "oklch(15% 0.0176 128.69)",
+          "oklch(26.43% 0.0176 128.69)",
+          "oklch(37.86% 0.0176 128.69)",
+          "oklch(49.29% 0.0176 128.69)",
+          "oklch(60.71% 0.0176 128.69)",
+          "oklch(72.14% 0.0176 128.69)",
+          "oklch(83.57% 0.0176 128.69)",
+          "oklch(95% 0.0176 128.69)"
+        ]
+      },
+      "control-hover-line": {
+        "role": "neutral",
+        "displayName": "Borde de hover",
+        "tonalRamp": [
+          "oklch(15% 0.0299 129.98)",
+          "oklch(26.43% 0.0299 129.98)",
+          "oklch(37.86% 0.0299 129.98)",
+          "oklch(49.29% 0.0299 129.98)",
+          "oklch(60.71% 0.0299 129.98)",
+          "oklch(72.14% 0.0299 129.98)",
+          "oklch(83.57% 0.0299 129.98)",
+          "oklch(95% 0.0299 129.98)"
+        ]
+      },
+      "orange-ink": {
+        "role": "secondary",
+        "displayName": "Naranja de lectura",
+        "tonalRamp": [
+          "oklch(15% 0.1593 39.04)",
+          "oklch(26.43% 0.1593 39.04)",
+          "oklch(37.86% 0.1593 39.04)",
+          "oklch(49.29% 0.1593 39.04)",
+          "oklch(60.71% 0.1593 39.04)",
+          "oklch(72.14% 0.1593 39.04)",
+          "oklch(83.57% 0.1593 39.04)",
+          "oklch(95% 0.1593 39.04)"
+        ]
+      },
+      "pattern-dark": {
+        "role": "secondary",
+        "displayName": "Oliva de patrón",
+        "tonalRamp": [
+          "oklch(15% 0.1602 115.59)",
+          "oklch(26.43% 0.1602 115.59)",
+          "oklch(37.86% 0.1602 115.59)",
+          "oklch(49.29% 0.1602 115.59)",
+          "oklch(60.71% 0.1602 115.59)",
+          "oklch(72.14% 0.1602 115.59)",
+          "oklch(83.57% 0.1602 115.59)",
+          "oklch(95% 0.1602 115.59)"
+        ]
+      },
+      "pattern-light": {
+        "role": "secondary",
+        "displayName": "Amarillo pálido de patrón",
+        "tonalRamp": [
+          "oklch(15% 0.1060 113.38)",
+          "oklch(26.43% 0.1060 113.38)",
+          "oklch(37.86% 0.1060 113.38)",
+          "oklch(49.29% 0.1060 113.38)",
+          "oklch(60.71% 0.1060 113.38)",
+          "oklch(72.14% 0.1060 113.38)",
+          "oklch(83.57% 0.1060 113.38)",
+          "oklch(95% 0.1060 113.38)"
+        ]
+      },
+      "pattern-stroke": {
+        "role": "neutral",
+        "displayName": "Contorno de patrón",
+        "tonalRamp": [
+          "oklch(15% 0.0318 125.22)",
+          "oklch(26.43% 0.0318 125.22)",
+          "oklch(37.86% 0.0318 125.22)",
+          "oklch(49.29% 0.0318 125.22)",
+          "oklch(60.71% 0.0318 125.22)",
+          "oklch(72.14% 0.0318 125.22)",
+          "oklch(83.57% 0.0318 125.22)",
+          "oklch(95% 0.0318 125.22)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Título de página",
+        "purpose": "Neuton para identificar la herramienta."
+      },
+      "brand": {
+        "displayName": "Marca",
+        "purpose": "Nombre del portal en cabecera."
+      },
+      "title": {
+        "displayName": "Título de panel",
+        "purpose": "Encabezados funcionales Inter."
+      },
+      "body": {
+        "displayName": "Texto general",
+        "purpose": "Introducción y lectura corriente."
+      },
+      "control": {
+        "displayName": "Control",
+        "purpose": "Acciones y nombres de prenda."
+      },
+      "label": {
+        "displayName": "Etiqueta",
+        "purpose": "Medidas, tallas, ayuda y notas."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "control-color",
+        "value": "background-color .15s, color .15s, border-color .15s",
+        "purpose": "Transiciones de botones, enlaces y campos; se eliminan con movimiento reducido."
+      },
+      {
+        "name": "piece-placement-duration",
+        "value": "650ms",
+        "purpose": "Entrada de piezas al plano."
+      },
+      {
+        "name": "piece-placement-easing",
+        "value": "1 - Math.pow(1 - t, 4)",
+        "purpose": "Desaceleración de cuarta potencia del acomodo."
+      },
+      {
+        "name": "piece-stagger",
+        "value": "(item % 6) * 0.035",
+        "purpose": "Retraso normalizado de la entrada inicial."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "intermediate",
+        "value": "1150px"
+      },
+      {
+        "name": "mobile",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Acción principal",
+      "kind": "button",
+      "description": "Acción siguiente del pie común: elegir tallas, revisar o calcular.",
+      "html": "<button class=\"ds-primary\">Revisar pedido<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-primary{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;display:flex;align-items:center;justify-content:space-between;gap:22px;min-width:180px;min-height:46px;padding:12px 14px;border:1px solid transparent;border-radius:6px;background:var(--yellow,#e8fb5b);color:var(--text,#1c1c1b);font-size:13px;cursor:pointer}.ds-primary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5}.ds-primary:hover:enabled{background:#dced4d}.ds-primary:active:enabled{border-color:var(--text,#1c1c1b)}.ds-primary:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px;}.ds-primary:disabled{opacity:.45;cursor:default}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Acción de texto",
+      "kind": "button",
+      "description": "Edición, cambio de prenda, vaciado y repetición del acomodo.",
+      "html": "<button class=\"ds-text\">Editar</button>",
+      "css": ".ds-text{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;padding:0;border:0;background:transparent;color:var(--muted,#60655c);text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-text:hover:enabled{color:var(--text,#1c1c1b)}.ds-text:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px;}.ds-text:disabled{opacity:.45;cursor:default}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}",
+      "refersTo": "button-text"
+    },
+    {
+      "name": "Descarga",
+      "kind": "button",
+      "description": "Exporta el tendido calculado.",
+      "html": "<button class=\"ds-download\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M10 2v11m-4-4 4 4 4-4M3 13v5h14v-5\"/></svg>Descargar tendido SVG</button>",
+      "css": ".ds-download{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px;padding:10px 6px;border:1px solid #b6bfab;border-radius:6px;background:var(--panel,#ffffff);color:var(--text,#1c1c1b);cursor:pointer}.ds-download svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5}.ds-download:hover{background:var(--raised,#f1f3ee)}.ds-download:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px;}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}",
+      "refersTo": "button-download"
+    },
+    {
+      "name": "Cantidad",
+      "kind": "input",
+      "description": "Número centrado entre quitar y agregar.",
+      "html": "<div class=\"ds-stepper\"><button aria-label=\"Quitar una playera talla M\">−</button><input type=\"number\" min=\"0\" max=\"12\" value=\"2\" aria-label=\"Cantidad de playeras talla M\"><button aria-label=\"Agregar una playera talla M\">+</button></div>",
+      "css": ".ds-stepper{display:flex;height:46px}.ds-stepper button{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;flex:0 0 32px;padding:0;border:1px solid var(--control-line,#cbd1c5);background:var(--bg,#f7f8f6);color:var(--text,#1c1c1b);font-size:18px;line-height:1;cursor:pointer}.ds-stepper button:first-child{border-radius:5px 0 0 5px}.ds-stepper button:last-child{border-radius:0 5px 5px 0}.ds-stepper input{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;min-width:0;width:100%;max-width:none;border:0;border-block:1px solid var(--control-line,#cbd1c5);border-radius:0;background:var(--panel,#ffffff);color:var(--text,#1c1c1b);text-align:center;font-variant-numeric:tabular-nums;appearance:textfield}.ds-stepper input::-webkit-inner-spin-button,.ds-stepper input::-webkit-outer-spin-button{appearance:none;margin:0}.ds-stepper button:hover:enabled{background:var(--yellow,#e8fb5b);border-color:var(--control-hover-line,#8b9582)}.ds-stepper button:focus-visible,.ds-stepper input:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px;}.ds-stepper button:disabled{opacity:.45;cursor:default}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}",
+      "refersTo": "input-quantity"
+    },
+    {
+      "name": "Prenda seleccionada",
+      "kind": "button",
+      "description": "Tarjeta de prenda con silueta SVG; vertical en escritorio y horizontal en móvil.",
+      "html": "<button class=\"ds-preset\" aria-pressed=\"true\"><svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><path d=\"M18 5h8c2 8 10 8 12 0h8l15 13-9 14-9-6v33H21V26l-9 6-9-14Z\"/></svg><span><strong>Playeras</strong><small>Manga corta · con bolsillo</small></span></button>",
+      "css": ".ds-preset{font:500 14px/1.6 var(--sans,Inter,system-ui,sans-serif);transition:background-color .15s,color .15s,border-color .15s;display:flex;flex-direction:column;align-items:start;text-align:left;gap:24px;min-height:220px;padding:28px;border:1px solid var(--control-line,#cbd1c5);border-radius:6px;background:var(--panel,#ffffff);color:var(--text,#1c1c1b);cursor:pointer}.ds-preset svg{width:64px;height:74px;fill:none;stroke:#737b69;stroke-width:1.7;stroke-linejoin:round;flex-shrink:0}.ds-preset strong{display:block;font-size:16px;font-weight:500}.ds-preset small{display:block;margin-top:3px;color:var(--muted,#60655c);font-size:13px;line-height:1.45}.ds-preset:hover{background:var(--bg,#f7f8f6);border-color:var(--control-hover-line,#8b9582)}.ds-preset[aria-pressed=true]{background:var(--selected,#f7fbdc);border-color:#828e3c}.ds-preset[aria-pressed=true] svg{stroke:var(--text,#1c1c1b)}.ds-preset:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px}@media(max-width:760px){.ds-preset{flex-direction:row;align-items:center;padding:20px;gap:22px;min-height:115px}.ds-preset svg{height:58px;width:52px}.ds-preset strong{font-size:15px}}@media(prefers-reduced-motion:reduce){.ds-preset{transition:none}}",
+      "refersTo": "preset-selected"
+    },
+    {
+      "name": "Panel blanco",
+      "kind": "card",
+      "description": "Panel del asistente con cuerpo amplio y pie de acciones separado por una regla.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-panel-body\"><h2>Tu pedido</h2><p>Revisa las prendas y las condiciones antes de calcular.</p></div><div class=\"ds-panel-footer\">Paso 3 de 4</div></section>",
+      "css": ".ds-panel{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);background:var(--panel,#ffffff);color:var(--text,#1c1c1b);border:1px solid var(--line,#dfe3db);border-radius:10px}.ds-panel-body{padding:32px}.ds-panel h2{margin:0;font-size:16px;font-weight:500;line-height:1.5}.ds-panel p{margin:8px 0 0;color:var(--muted,#60655c)}.ds-panel-footer{padding:20px 32px;border-top:1px solid var(--line,#dfe3db);color:var(--muted,#60655c)}@media(max-width:760px){.ds-panel-body{padding:22px}.ds-panel-footer{padding:18px 22px}}",
+      "refersTo": "panel"
+    },
+    {
+      "name": "Ruta del asistente",
+      "kind": "nav",
+      "description": "Cuatro pasos con círculo amarillo activo, regla inferior y estados completados y futuros.",
+      "html": "<nav class=\"ds-progress\" aria-label=\"Pasos del planificador\"><ol><li><button class=\"ds-completed\" type=\"button\"><span class=\"ds-step-number\">1</span><span>Prenda</span></button></li><li><button type=\"button\" aria-current=\"step\"><span class=\"ds-step-number\">2</span><span>Tallas</span></button></li><li><button type=\"button\" disabled><span class=\"ds-step-number\">3</span><span>Revisión</span></button></li><li><button type=\"button\" disabled><span class=\"ds-step-number\">4</span><span>Tu tela</span></button></li></ol></nav>",
+      "css": ".ds-progress{font:500 13px/1.6 var(--sans,Inter,system-ui,sans-serif)}.ds-progress ol{display:grid;grid-template-columns:repeat(4,1fr);padding:0;margin:0;list-style:none;gap:8px}.ds-progress li{min-width:0}.ds-progress button{font:inherit;display:flex;align-items:center;gap:10px;border:0;border-radius:0;background:transparent;width:100%;padding:12px 0;color:var(--muted,#60655c);border-bottom:2px solid var(--line,#dfe3db);cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}.ds-progress button:disabled{opacity:1;color:#747c6e;cursor:default}.ds-progress button[aria-current]{color:var(--text,#1c1c1b);border-bottom-color:#7c872c}.ds-step-number{display:inline-grid;place-items:center;border:1px solid #bac2b2;width:27px;height:27px;border-radius:50%;font-size:12px}.ds-progress [aria-current] .ds-step-number{background:var(--yellow,#e8fb5b);color:var(--text,#1c1c1b);border-color:var(--yellow,#e8fb5b)}.ds-progress .ds-completed .ds-step-number{background:var(--raised,#f1f3ee);color:var(--text,#1c1c1b)}.ds-progress button:hover:enabled{color:var(--text,#1c1c1b)}.ds-progress button:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px}@media(max-width:760px){.ds-progress button{flex-direction:column;gap:8px;align-items:start;font-size:12px;padding:8px 0 12px}.ds-step-number{width:24px;height:24px}}@media(prefers-reduced-motion:reduce){.ds-progress button{transition:none}}"
+    },
+    {
+      "name": "Estado del tendido",
+      "kind": "chip",
+      "description": "Estado informativo del cálculo.",
+      "html": "<span class=\"ds-status\">Tendido listo</span>",
+      "css": ".ds-status{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);display:inline-block;padding:4px 8px;border-radius:4px;background:var(--selected,#f7fbdc);color:var(--text,#1c1c1b)}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}",
+      "refersTo": "status-complete"
+    },
+    {
+      "name": "Compra recomendada",
+      "kind": "card",
+      "description": "Compra blanca con cifra Inter y unidades.",
+      "html": "<section class=\"ds-purchase\"><h2>Compra recomendada</h2><p class=\"ds-value\"><strong>2.75</strong><span>yardas</span></p><p class=\"ds-unit\">de tela de <b>150 cm de ancho</b></p><div class=\"ds-detail\"><span>Tela aprovechada</span><span>78.9 %</span></div></section>",
+      "css": ".ds-purchase{font:500 12px/1.6 var(--sans,Inter,system-ui,sans-serif);padding:22px;border:1px solid var(--line,#dfe3db);border-radius:10px;background:var(--panel,#ffffff);color:var(--text,#1c1c1b)}.ds-purchase h2{margin:0;font-size:16px;font-weight:500;line-height:1.5}.ds-value{display:flex;align-items:baseline;gap:9px;margin:18px 0 6px}.ds-value strong{font-size:42px;font-weight:500;line-height:1.15;letter-spacing:-.035em;font-variant-numeric:tabular-nums}.ds-value span{font-size:15px}.ds-unit{margin:0;color:var(--muted,#60655c)}.ds-unit b{font-weight:500;color:var(--text,#1c1c1b)}.ds-detail{display:flex;justify-content:space-between;gap:12px;margin-top:22px;padding:17px 0;border-block:1px solid var(--line,#dfe3db)}.ds-detail span:first-child{color:var(--muted,#60655c)}@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Acción secundaria",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Volver, agregar otra prenda o comenzar un nuevo pedido.",
+      "html": "<button class=\"ds-secondary\" type=\"button\"><svg viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M10 3v14M3 10h14\"/></svg>Agregar otra prenda</button>",
+      "css": ".ds-secondary{font:500 13px/1.6 var(--sans,Inter,system-ui,sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:9px;background:var(--panel,#ffffff);color:var(--text,#1c1c1b);border:1px solid #b6bfab;border-radius:6px;min-height:44px;padding:10px 16px;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}.ds-secondary svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}.ds-secondary:hover:enabled{background:var(--raised,#f1f3ee)}.ds-secondary:focus-visible{outline:2px solid var(--focus,#59651b);outline-offset:4px}.ds-secondary:disabled{opacity:.45;cursor:default}@media(max-width:760px){.ds-secondary{padding-inline:12px}}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "La mesa de corte",
+    "overview": "El planificador guía una decisión a la vez con pasos numerados, paneles blancos y reglas finas sobre un fondo gris verdoso. Neuton identifica la herramienta; Inter permite comparar cantidades, medidas y unidades. El amarillo de LABS destaca la acción y la selección; el naranja señala el final medido del rollo y las piezas que lo usan en el preset.\n\nEste sistema rige únicamente `connectors/planner`. Conserva la identidad profesional clara de LABS y registra el asistente construido en `planner.css`, `index.html` y `planner.js`. La selección, las cantidades, la revisión y el resultado comparten la misma tipografía y los mismos controles; la ruta visible y el pie de acciones permiten volver sin perder el pedido.",
+    "keyCharacteristics": [
+      "Paneles blancos planos, bordes finos y esquinas discretas.",
+      "Neuton en título y marca; Inter en información, controles y compra.",
+      "Amarillo para acción, paso activo y selección, con naranja en la geometría del tendido.",
+      "Una tarea visible por paso, con acciones en un pie común.",
+      "Geometría y colores del preset compartidos por muestras, tendido y descarga."
+    ],
+    "rules": [],
+    "dos": [
+      "Do conservar Neuton para título y marca e Inter para controles, medidas y compra.",
+      "Do mantener visibles las unidades y las advertencias sobre patrones ilustrativos.",
+      "Do conservar el color y la geometría de cada pieza entre las distintas representaciones.",
+      "Do mantener el desplazamiento horizontal del rollo dentro de su contenedor.",
+      "Do dar foco visible y respetar la preferencia de movimiento reducido.",
+      "Do mantener la ruta numerada, una tarea por paso y las acciones en el pie del panel.",
+      "Do conservar las cantidades al volver y deshabilitar el avance si el pedido no es válido."
+    ],
+    "donts": [
+      "Don't trasladar fuentes pixeladas, biseles, cuenta regresiva ni composición de juego al planificador.",
+      "Don't convertir el tendido en un escenario oscuro ni la compra en un panel amarillo.",
+      "Don't sustituir las piezas calculadas por diagramas decorativos.",
+      "Don't añadir sombras para jerarquizar paneles planos.",
+      "Don't reducir las etiquetas del rollo para forzarlas dentro de una pieza pequeña."
+    ]
+  }
+}

@@ -83,7 +83,7 @@ components:
 
 **Creative North Star: "An arcade cabinet that shows how a T-shirt becomes fabric savings"**
 
-The demo tells one story, left to right and in order: an order of T-shirts (playeras), each shirt taken apart into its six pattern pieces (piezas), the pieces laid on the roll (tendido), TelaTetris rearranging them, and the roll saved (ahorro). Pixel headings, score numbers, square beveled controls, and faint scanlines give the arcade feel. Colors come from labs.gt.
+The demo tells one story, left to right and in order: an order of T-shirts (playeras), each shirt taken apart into its six pattern pieces (piezas), the pieces laid on the roll (tendido), TelaTetris rearranging them, and the money saved on the fabric purchase (ahorro, in quetzales). Pixel headings, score numbers, square beveled controls, and faint scanlines give the arcade feel. Colors come from labs.gt.
 
 Garment shapes retain their actual outlines. The cloth roll, ruler, cutting lines, and piece quantities make the arrangement readable throughout play and comparison. Retro styling belongs to the interface around those measurements.
 
@@ -105,7 +105,7 @@ The palette is the one labs.gt uses: yellow `#E8FB5B`, black `#1C1C1B`, orange `
 
 ### Primary
 
-- **Labs yellow** marks the brand, the active rail step, primary actions, statistics, TelaTetris's cut line, and the saved-roll box. The result card is a full yellow slab with black text, as labs.gt uses its yellow sections.
+- **Labs yellow** marks the brand, the active rail step, primary actions, statistics, TelaTetris's cut line, and the money-saved box on the roll. The result card is a full yellow slab with black text, as labs.gt uses its yellow sections.
 - **The T-shirt is yellow.** Front is Labs yellow, back a darker yellow, sleeves a lighter yellow, so the pieces read as one garment.
 
 ### Secondary
@@ -132,7 +132,7 @@ Both families load from local font files, with their license files beside them. 
 
 - The brand scales from 18px to 26px with a 1.5 line height. Stage headings use 18px with a 1.7 line height and can wrap on mobile.
 - Section headings and primary actions use the pixel-label role. Headings use a 1.7 line height; primary actions use 1.8.
-- Repeated statistics use the metric role. The result enlarges the saved length and percentage to make the outcome dominant.
+- Repeated statistics use the metric role. The result enlarges the money saved (Q, two decimals) to make the outcome dominant.
 - Body copy and controls use the body family. Supporting copy steps down to 13px or 12px; queue labels and compact metric labels use 11px.
 - Queue quantities use 10px pixel text. Canvas cut labels use bold 12px monospace; rulers use 11px monospace. Numbers use tabular figures where the UI compares changing values.
 
@@ -160,7 +160,7 @@ Moving garments briefly receive a soft canvas shadow with 16px blur and a 6px do
 
 ## Shapes
 
-Panels, buttons, queue tiles, progress bars, badges, and toasts have square corners. Most container borders are 2px. Keyboard keys have a thicker lower edge. Garment silhouettes come directly from their polygon geometry, including grain arrows where applicable; their outline stays intact under the retro styling.
+Panels, buttons, queue tiles, progress bars, badges, and toasts have square corners. Most container borders are 2px. Keyboard keys have a thicker lower edge. Garment silhouettes come directly from their polygon geometry, including grain arrows where applicable, which turn with the piece (vertical after a quarter turn); their outline stays intact under the retro styling.
 
 ## Components
 
@@ -174,7 +174,7 @@ Each size card contains a shirt icon drawn to scale (S smallest, XL largest), th
 
 ### Queue tiles
 
-Tiles sit in a matrix with one row per size and one column per piece type, named once in the header row. Each tile shows the real garment silhouette and a remaining quantity at the top right; the piece-and-size name is a screen-reader label. Selection turns the border yellow and the fill olive. Selection uses `aria-pressed`, and the accessible label includes the remaining quantity. Exhausted groups disable with reduced opacity. Counts include the held piece. Queue focus uses the shared yellow outline with a 3px offset.
+Tiles sit in a matrix with one row per size and one column per piece type, named once in the header row under its number key (1–5) in yellow pixel text. Each tile shows the real garment silhouette and a remaining quantity at the top right; the piece-and-size name is a screen-reader label. Selection turns the border yellow and the fill olive. Selection uses `aria-pressed`, and the accessible label includes the remaining quantity. Exhausted groups disable with reduced opacity. Counts include the held piece. Queue focus uses the shared yellow outline with a 3px offset.
 
 ### Cards and statistics
 
@@ -182,7 +182,11 @@ Cards use panel charcoal, square divider borders, and white pixel headings led b
 
 ### Board and results
 
-The beveled canvas frame contains the cloth grid, real garment outlines, ruler, and labeled cut lines. Yellow and orange distinguish algorithm and player comparison marks. The results card enlarges saved roll and percentage; the comparison table aligns numeric columns to the right, shows the player row in orange, and highlights the TelaTetris row in yellow. A primary button starts another round.
+The beveled canvas frame contains the cloth grid, real garment outlines, ruler, and labeled cut lines. Yellow and orange distinguish algorithm and player comparison marks. The results card enlarges the money saved in GTQ, then yards saved, the saving over 1,000 orders and per T-shirt. The saved stretch of roll on the board is labeled with its cost. The comparison table lists yards to buy and cost, and aligns numeric columns to the right, shows the player row in orange, and highlights the TelaTetris row in yellow. A primary button starts another round.
+
+### Start screen
+
+A full-screen title card on warm black with the Labs dot grid: the pixel shirt and TelaTetris wordmark, a canvas T-shirt that floats, turns around its vertical axis (showing the back panel when it faces away, darker as it turns edge-on) and casts a floor shadow, pixel twinkles, the title "Empieza a ahorrar con TelaTetris" slamming in with an orange offset shadow, a line about yards and quetzales, and a throbbing yellow "▶ Empezar" button. The shirt is drawn at quarter resolution and scaled up without smoothing, so it reads as pixel art. Space or Enter also starts.
 
 ### Intro
 

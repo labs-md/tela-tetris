@@ -1,10 +1,17 @@
 # Arrange
 
-Arrange is an engine for laying out flat parts on material with as little waste as possible. The goal is to arrange parts on any 2D surface.
+Arrange tells you how much material an order needs, then lays out the parts to cut. It answers two questions, in this order:
+
+1. **Purchasing, the first step.** Given the parts you need and how many of each, how much material should you buy? The engine packs the parts as tightly as it can and reports the strip length they take. For fabric, that's the yards of roll to purchase.
+2. **Cutting, the second step.** Where does each part go? The same layout, with every placement, becomes the cutting plan.
+
+Both answers come from one response: `length` is the purchase, `placements` is the cutting plan. See [Purchasing first, cutting second](#purchasing-first-cutting-second).
 
 Today it handles material that comes as a strip of fixed width and open length, such as a fabric roll or a steel coil, and uses as little of the strip as it can. Any such material is the same problem once you know four things: how wide the strip is, how far apart the parts must stay, which rotations each part allows, and where the strip has defects.
 
-**Try the demo:** open [`connectors/telatetris/index.html`](connectors/telatetris/index.html) in a browser. No build step, no server. TelaTetris is the demo: you lay out a T-shirt order on a fabric roll against the clock, then the engine rearranges your own pieces and compares how much roll each layout uses. Inside the game, the engine plays under the TelaTetris name.
+**Fabric planning portal:** open [`connectors/planner/index.html`](connectors/planner/index.html). Choose T-shirts, pants or jackets and quantities by size. The planner arranges the pieces on a 150 cm roll and reports linear yards to buy, rounded up to a quarter yard. Presets are illustrative. See the [planner README](connectors/planner/README.md) for assumptions. This is a separate portal with the labs.gt design language; the arcade demo remains available below.
+
+**Try the demo:** open [`connectors/telatetris/index.html`](connectors/telatetris/index.html) in a browser. No build step, no server. TelaTetris is the demo: you lay out a T-shirt order on a fabric roll against the clock, then the engine rearranges your own pieces. Each layout's roll length becomes yards of fabric to buy, and the game shows how many quetzales (GTQ) the engine's layout saves on that purchase. Inside the game, the engine plays under the TelaTetris name.
 
 The engine is one dependency-free JavaScript file. Everything around it is a **connector**: a small program that turns one domain's input into a request, and the engine's response back into that domain's output. The TelaTetris demo is one connector. The sheet-metal script is another.
 
@@ -27,6 +34,21 @@ flowchart LR
   C -- response --> M
   C -- response --> X
 ```
+
+## Purchasing first, cutting second
+
+The engine minimizes strip length, and strip length is what a buyer pays for. That makes the first use a purchase estimate: send the order as a request, read `length` from the response, and convert it to the unit the material is sold in.
+
+For the textile example, the strip is a 150 cm fabric roll sold by the linear yard (91.44 cm). The demo's 4-shirt order needs:
+
+| Layout | Roll | To buy | At Q30 / yard |
+|---|---|---|---|
+| By shelves, the way it's often done by hand | 360 cm | 3.94 yd | Q118.11 |
+| Arrange, after 3.5 s of search | 291 cm | 3.18 yd | Q95.47 |
+
+The garment connector does this conversion with `Garments.purchase(length)`. The price per yard is a demo value; a factory would use its own.
+
+Cutting is the second step. The same response's `placements` give each part's position and rotation, ready to become a marker or a cutting file. The engine already returns them; connectors that write cutting formats are the next piece of work.
 
 ## How the engine works
 
@@ -78,9 +100,9 @@ The window keeps the layout growing from left to right. Without it, the best mat
 
 What Arrange adds to the paper:
 
-- **A search over item orders.** The paper runs one pass, largest first. Arrange then swaps or moves one item in the order, runs the pass again, and keeps the new order whenever the layout is no longer. This is where most of the gain comes from. On the demo's 4-shirt order the paper's single pass needs 333 cm of roll, and 3.5 s of search brings it to 285 cm. Laid out by shelves, the way people often do it by hand, the order needs 360 cm.
-- **Integral images instead of FFT convolution.** The scores are the same, but each position costs a handful of additions, so a pass over 24 garment pieces takes about 35 ms.
-- **Per-item rotations and blocked regions.** Each item lists its own allowed rotations (0° and 180° for fabric with a grain line) instead of always trying all four. The strip can have defects no part may cover.
+- **A search over item orders.** The paper runs one pass, largest first. Arrange then swaps or moves one item in the order, runs the pass again, and keeps the new order whenever the layout is no longer. This is where most of the gain comes from. On the demo's 4-shirt order, with quarter turns allowed, the paper's single pass needs 312 cm of roll, and 3.5 s of search brings it to 291 cm. Laid out by shelves, the way people often do it by hand, the order needs 360 cm.
+- **Integral images instead of FFT convolution.** The scores are the same, but each position costs a handful of additions, so a pass over 24 garment pieces, each tried in four rotations, takes about 70 ms.
+- **Per-item rotations and blocked regions.** Each item lists its own allowed rotations (for example 0° and 180° for fabric that must keep its grain line) instead of always trying all four. The strip can have defects no part may cover.
 - **A gap that holds on diagonals.** The paper grows parts with a disk. For gaps of 2+ cells that lets corners get closer than the gap, so Arrange grows by edge distance instead. For a 1-cell gap the two are identical.
 - **An independent check.** The engine re-validates every layout from scratch before reporting it.
 
@@ -136,7 +158,7 @@ The full spec is in [`arrange/PROTOCOL.md`](arrange/PROTOCOL.md), with a JSON Sc
 
 | Connector | Domain | Uses |
 |---|---|---|
-| [`connectors/telatetris`](connectors/telatetris/README.md) | T-shirt pieces on a 150 cm fabric roll. Rotations 0° and 180° only, to keep the grain line. A browser game: you lay out the order against the clock, then the engine rearranges your pieces. | A session, for live placement checks, step-by-step search, and `evaluate` to score the player. |
+| [`connectors/telatetris`](connectors/telatetris/README.md) | T-shirt pieces on a 150 cm fabric roll, turned in quarter turns (0°, 90°, 180°, 270°). Converts roll length to yards and GTQ for the purchase. A browser game: you lay out the order against the clock, then the engine rearranges your pieces and shows the money saved. | A session, for live placement checks, step-by-step search, and `evaluate` to score the player. |
 | [`connectors/sheet-metal`](connectors/sheet-metal/sheet-metal.js) | 26 steel parts on a 1 m coil, any 90° rotation, a rust spot to avoid. Writes an SVG. | `solve`, or the CLI. |
 
 Writing a new one takes three steps: map your shapes to `items`, describe the material in `strip`, and read `placements` back. [`PROTOCOL.md`](arrange/PROTOCOL.md#writing-a-connector) walks through it.
@@ -188,6 +210,7 @@ Arrange is an independent implementation. The order search, blocked regions, edg
 
 ## Limits
 
+- A purchase estimate is the length of a layout the engine actually found, so that much material is known to be enough for the parts. It doesn't include allowances a buyer adds for end loss, defects or shrinkage.
 - Results are a best effort: the shortest valid layout the search found within its budget, not a proven optimum. Two runs of the same job can differ, since a faster machine tries more orders in the same time.
 - One open-ended strip. Fixed-size sheets, where parts spill onto the next sheet, would need a new task in the protocol.
 - No mirroring. If a part may flip, send the mirrored outline as a second item.

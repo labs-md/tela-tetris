@@ -9,7 +9,7 @@ const Arrange = require('../arrange/arrange.js');
 const Garments = require('../connectors/telatetris/garments.js');
 
 // The game runs normally, with only the DOM and animation timers replaced.
-function game() {
+function game({ record } = {}) {
   class Element {
     constructor() {
       this.children = [];
@@ -28,6 +28,7 @@ function game() {
   }
 
   const elements = new Map();
+  const timers = [];
   const listeners = {};
   const document = {
     getElementById(id) {
@@ -40,10 +41,12 @@ function game() {
     document,
     window: {
       Arrange, Garments, innerHeight: 900,
+      TelaTetrisScores: record ? { record } : undefined,
       addEventListener(type, listener) { listeners[type] = listener; },
     },
     performance: { now: () => 0 },
-    requestAnimationFrame() {}, setInterval() {}, setTimeout() {}, clearTimeout() {},
+    console: { warn() {} },
+    requestAnimationFrame() {}, setInterval() {}, setTimeout(callback) { timers.push(callback); }, clearTimeout() {},
   });
 
   const element = (id) => document.getElementById(id);
@@ -51,8 +54,40 @@ function game() {
   const tile = (name) => tiles().find((el) => el.children[2].textContent === name);
   const quantity = (name) => Number(tile(name).children[1].textContent.slice(1));
   const key = (key) => listeners.keydown({ key, preventDefault() {} });
-  return { element, tiles, tile, quantity, key };
+  const runTimers = () => timers.splice(0).forEach((callback) => callback());
+  return { element, tiles, tile, quantity, key, runTimers };
 }
+
+test('records only the final human length once, after review undo closes, and records a new round separately', () => {
+  const scores = [];
+  const g = game({ record: (length) => scores.push(length) });
+  g.element('bShelf').onclick();
+  assert.equal(scores.length, 0, 'review is still editable');
+  g.runTimers();
+  g.element('bUndo').onclick();
+  assert.equal(scores.length, 0, 'undo never emits an event');
+  g.key('Enter');
+  const humanLength = Number(g.element('stageTitle').textContent.match(/(\d+) cm/)[1]);
+  g.runTimers();
+  g.element('bFinish').onclick();
+  g.element('bFinish').onclick();
+  g.key('Enter');
+  assert.deepEqual(scores, [humanLength]);
+  assert.equal(g.element('solveHuman').textContent, `${scores[0]} cm`);
+  g.element('bAgain').onclick();
+  g.element('bShelf').onclick();
+  g.runTimers();
+  g.element('bFinish').onclick();
+  assert.equal(scores.length, 2);
+});
+
+test('recording failure does not interrupt the algorithm turn', () => {
+  const g = game({ record: () => { throw new Error('storage unavailable'); } });
+  g.element('bShelf').onclick();
+  g.runTimers();
+  assert.doesNotThrow(() => g.element('bFinish').onclick());
+  assert.equal(g.element('solvePanel').hidden, false);
+});
 
 test('Siguiente groups all copies by part and size, including the held piece', () => {
   const g = game();
@@ -117,4 +152,29 @@ test('the last held piece stays counted, completion clears the groups, and revie
   g.element('bUndo').onclick();
   assert.equal(g.element('sPieces').textContent, '23/24');
   assert.equal(g.tiles().filter((el) => !el.disabled).length, 1);
+});
+
+test('purchase turns a roll length into yards to buy and their cost in GTQ', () => {
+  assert.deepEqual(Garments.purchase(Garments.CM_PER_YARD), { yards: 1, gtq: Garments.PRICE_PER_YARD_GTQ });
+  const p = Garments.purchase(274.32, 40);
+  assert.ok(Math.abs(p.yards - 3) < 1e-9);
+  assert.ok(Math.abs(p.gtq - 120) < 1e-9);
+});
+
+test('number keys pick a piece type, and pressing again steps through its sizes', () => {
+  const g = game();
+  const held = () => g.tiles().find((el) => el.attributes['aria-pressed'] === 'true').children[2].textContent;
+  g.key('2');
+  const first = held();
+  assert.match(first, /^Espalda · /);
+  g.key('2');
+  const second = held();
+  assert.match(second, /^Espalda · /);
+  assert.notEqual(second, first);
+  g.key('2');
+  assert.match(held(), /^Espalda · /);
+  g.key('2');
+  assert.equal(held(), first, 'three sizes in the order, so the fourth press is back to the first');
+  g.key('5');
+  assert.match(held(), /^Bolsillo · /);
 });

@@ -96,13 +96,13 @@ test('metrics leave blocked cells out of the used area', () => {
   assert.equal(m.area, 16);
 });
 
-test('garment connector: grain kept, layout beats shelves', () => {
-  const S = Arrange.session(Garments.request({ M: 1 }));
+test('garment connector: quarter turns allowed, layout beats shelves', () => {
+  const S = Arrange.session(Garments.request({ M: 2 }));
   const P = S.problem;
-  assert.equal(P.items.length, Garments.PIECES_PER_GARMENT);
-  assert.ok(P.items.every((it) => it.rotations.join() === '0,180'));
-  const best = P.pack({ iterations: 10 });
-  assert.equal(best.length, 81);
+  assert.equal(P.items.length, 2 * Garments.PIECES_PER_GARMENT);
+  assert.ok(P.items.every((it) => it.rotations.join() === '0,90,180,270'));
+  const best = P.pack({ iterations: 5 });
+  assert.equal(best.length, 148);
   assert.ok(best.length < P.layoutLength(P.shelf()));
   assert.equal(P.validate(best.placements).ok, true);
 });

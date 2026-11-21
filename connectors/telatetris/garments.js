@@ -1,7 +1,11 @@
 /*
  * Garment connector for the Arrange engine: T-shirt pattern pieces on a roll
- * of fabric, in cm, one cell = 1 cm. Pieces keep their grain line along the roll,
- * so the only allowed rotations are 0° and 180°.
+ * of fabric, in cm, one cell = 1 cm. Pieces turn in quarter turns clockwise
+ * (0°, 90°, 180°, 270°), for the player and the engine alike.
+ *
+ * Step 1, purchasing: the engine's `length` for an order is the roll to buy.
+ * Fabric is sold by the yard, so `purchase(length)` turns it into yards and
+ * quetzales. Step 2, cutting: the same response's placements are the layout.
  *
  * Replace PIECE_TYPES / GARMENT with real patterns (for example, polygons
  * exported from DXF) to show a factory its own order.
@@ -18,7 +22,13 @@
 
   const SIZE_SCALE = { S: 0.92, M: 1.0, L: 1.08, XL: 1.16 };
 
-  const GRAIN = [0, 180];
+  // Quarter turns, clockwise. The game's rotate control steps through them in order.
+  const ROTATIONS = [0, 90, 180, 270];
+
+  const CM_PER_YARD = 91.44;
+  // Demo price of one linear yard of the 150 cm roll, in GTQ. Replace with the
+  // fabric's real price to quote a factory's own purchase.
+  const PRICE_PER_YARD_GTQ = 30;
 
   // Outlines in cm for size M, lying with the grain along x. Colors follow the
   // Labs palette: one yellow shirt (front, darker back, lighter sleeves), a
@@ -68,7 +78,7 @@
           items.push({
             key: `${type}-${size}-${garment}`,
             polygon: Arrange.scalePolygon(t.poly, SIZE_SCALE[size]),
-            rotations: GRAIN,
+            rotations: ROTATIONS,
             quantity: qty,
             data: { type, size, garment, name: t.name, color: t.color, arrow: t.arrow },
           });
@@ -81,7 +91,16 @@
     return { protocol: Arrange.PROTOCOL, units: 'cm', cellSize: 1, strip: { width, gap }, items, search };
   }
 
-  const Garments = { SIZE_SCALE, PIECE_TYPES, GARMENT, PIECES_PER_GARMENT, GRAIN, request };
+  /** Roll length in cm → what to buy: yards of fabric and their cost in GTQ. */
+  function purchase(lengthCm, pricePerYard = PRICE_PER_YARD_GTQ) {
+    const yards = lengthCm / CM_PER_YARD;
+    return { yards, gtq: yards * pricePerYard };
+  }
+
+  const Garments = {
+    SIZE_SCALE, PIECE_TYPES, GARMENT, PIECES_PER_GARMENT, ROTATIONS,
+    CM_PER_YARD, PRICE_PER_YARD_GTQ, request, purchase,
+  };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = Garments;
   else root.Garments = Garments;
