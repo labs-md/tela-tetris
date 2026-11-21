@@ -7,7 +7,7 @@
  */
 (() => {
   'use strict';
-  const TT = window.TT;
+  const { Arrange, Garments } = window;
 
   const ROLL_W = 150;        // roll width, cm
   const TURN_MS = 90000;     // player's time limit (starts on first interaction)
@@ -38,9 +38,16 @@
 
   function newGame() {
     if (G) G.token++;
-    const pieces = TT.makeOrder(counts, GAP);
-    const shelf = TT.shelfPack(pieces, ROLL_W, GAP);
-    const shelfLen = TT.layoutLength(pieces, shelf);
+    // The game is a connector: it sends the order to the engine as a protocol
+    // request and keeps the session for live checks, the search and scoring.
+    // The game controls the search time itself, so the request's budget is loose.
+    const seed = 1000 + counts.S * 7 + counts.M * 31 + counts.L * 131 + counts.XL * 521;
+    const job = Garments.request(counts, { width: ROLL_W, gap: GAP, seed, iterations: 1e6, timeMs: 6e5 });
+    const S = Arrange.session(job);
+    const P = S.problem;   // cells = cm, since the job's cellSize is 1
+    const pieces = P.items;
+    const shelf = P.shelf();
+    const shelfLen = P.layoutLength(shelf);
     const L = Math.ceil(shelfLen + 20);
     const queue = pieces.map((p) => p.id);
     for (let i = queue.length - 1; i > 0; i--) {
@@ -48,11 +55,11 @@
       [queue[i], queue[j]] = [queue[j], queue[i]];
     }
     G = {
-      phase: 'play', token: 0, pieces, shelf, shelfLen, L,
-      board: new TT.Board(ROLL_W, L, GAP),
+      phase: 'play', token: 0, S, P, pieces, shelf, shelfLen, L,
+      board: P.board(L),
       placements: [], queue, held: null,
       t0: null, elapsed: 0, timeUp: false, warned: false, autoIds: new Set(),
-      search: null, human: null, algo: null, final: null, from: null,
+      searching: false, human: null, algo: null, final: null, from: null,
     };
     spawn(G.queue.shift());
     showPanel('play');
@@ -72,7 +79,7 @@
     const box = $('sizes');
     box.innerHTML = '';
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    for (const size of Object.keys(TT.SIZE_SCALE)) {
+    for (const size of Object.keys(Garments.SIZE_SCALE)) {
       const el = document.createElement('div');
       el.className = 'size';
       el.innerHTML = `<b>${size}</b><button aria-label="menos ${size}">−</button><span>${counts[size]}</span><button aria-label="más ${size}">+</button>`;
@@ -83,7 +90,7 @@
       plus.onclick = () => changeOrder(size, +1);
       box.appendChild(el);
     }
-    const n = total * TT.GARMENT.reduce((a, [, q]) => a + q, 0);
+    const n = total * Garments.PIECES_PER_GARMENT;
     $('orderMeta').textContent = `${total} ${total === 1 ? 'playera' : 'playeras'} · ${n} piezas · rollo ${ROLL_W} cm`;
   }
 
@@ -97,9 +104,15 @@
 
   // -------------------------------------------------------- held piece ---
 
-  function variant(id, rot) { return TT.variantOf(G.pieces[id], rot); }
+  // Placements in protocol form ({item, rotation, x, y} in cm) and in the
+  // game's own form ({id, rot, x, y} in cells). With 1 cm cells only the
+  // field names differ.
+  const toJob = (p) => ({ item: p.id, rotation: p.rot, x: p.x, y: p.y });
+  const fromJob = (p) => ({ id: p.item, rot: p.rotation, x: p.x, y: p.y });
 
-  function cutLength(placements = G.placements) { return TT.layoutLength(G.pieces, placements); }
+  function variant(id, rot) { return Arrange.variantOf(G.pieces[id], rot); }
+
+  function cutLength(placements = G.placements) { return G.P.layoutLength(placements); }
 
   function spawn(id, at = null) {
     if (id === undefined) { G.held = null; return; }
@@ -125,11 +138,11 @@
     if (!force && c.x === h.x && c.y === h.y) return;
     h.x = c.x; h.y = c.y;
     const v = variant(h.id, h.rot);
-    h.ok = G.board.fits(v, h.x, h.y);
+    h.ok = G.board.fitsVariant(v, h.x, h.y);
     h.ghost = null;
     if (h.ok) {
       let gx = h.x;
-      while (gx - 1 >= GAP && G.board.fits(v, gx - 1, h.y)) gx--;
+      while (gx - 1 >= GAP && G.board.fitsVariant(v, gx - 1, h.y)) gx--;
       h.ghost = gx;
     }
     requestRender();
@@ -169,7 +182,8 @@
   function rotate() {
     const h = G.held;
     if (!h) return;
-    h.rot = h.rot === 0 ? 180 : 0;
+    const rs = G.pieces[h.id].rotations;
+    h.rot = rs[(rs.indexOf(h.rot) + 1) % rs.length];
     setHeld(h.x, h.y, true);
   }
 
@@ -213,7 +227,7 @@
     const need = cutLength() + extra + 110;
     if (need <= G.L) return;
     G.L = Math.ceil(need + 40);
-    G.board = new TT.Board(ROLL_W, G.L, GAP);
+    G.board = G.P.board(G.L);
     for (const p of G.placements) G.board.place(G.pieces[p.id], p.rot, p.x, p.y);
     resize();
   }
@@ -223,13 +237,12 @@
     const ids = [...(G.held ? [G.held.id] : []), ...G.queue];
     if (!ids.length) return;
     startClock();
-    const shelf = TT.shelfPack(G.pieces, ROLL_W, GAP, ids);
     const start = cutLength();
-    ensureRoom(TT.layoutLength(G.pieces, shelf));
+    const shelf = G.P.shelf(ids, start);
+    ensureRoom(G.P.layoutLength(shelf) - start);
     for (const p of shelf) {
-      const q = { ...p, x: p.x + start };
-      G.board.place(G.pieces[q.id], q.rot, q.x, q.y);
-      G.placements.push(q);
+      G.board.place(G.pieces[p.id], p.rot, p.x, p.y);
+      G.placements.push(p);
     }
     G.held = null;
     G.queue = [];
@@ -258,7 +271,7 @@
     G.phase = 'review';
     const token = ++G.token;
     G.elapsed = G.t0 === null ? 0 : performance.now() - G.t0;
-    G.human = TT.metrics(G.pieces, G.placements, ROLL_W);
+    G.human = G.S.evaluate(G.placements.map(toJob));
     $('sTime').textContent = fmtClock(Math.max(0, TURN_MS - G.elapsed));
     if (G.timeUp) {
       const n = G.autoIds.size;
@@ -272,19 +285,17 @@
     updateSide();
     requestRender();
 
-    const seed = 1000 + counts.S * 7 + counts.M * 31 + counts.L * 131 + counts.XL * 521;
-    G.algoL = Math.max(G.L, Math.ceil(G.shelfLen * 1.3 + 40));
     const t0 = performance.now();
     G.reviewT0 = t0;
 
     // Let the "your result" frame paint before the first (synchronous) pass.
     setTimeout(() => {
       if (!G || G.token !== token) return;
-      G.search = TT.createSearch(G.pieces, ROLL_W, G.algoL, GAP, seed);
+      G.S.reset();
+      G.searching = true;
       const loop = () => {
         if (!G || G.token !== token) return;
-        const s = performance.now();
-        while (performance.now() - s < 20) G.search.step();
+        G.S.step(20);
         const e = performance.now() - t0;
         updateCountdown(e);
         requestRender();
@@ -303,7 +314,8 @@
   function cancelReview() {
     G.token++;
     G.phase = 'play';
-    G.search = null;
+    G.searching = false;
+    G.S.reset();
     setHeading('Tu turno: acomoda el pedido', 'Gana el tendido que use menos rollo.');
     $('keys').style.visibility = '';
     requestRender();
@@ -312,18 +324,19 @@
   // ------------------------------------- move: the algorithm rearranges ---
 
   function startMove() {
-    if (!G.search) return;
+    if (!G.searching) return;
     G.phase = 'move';
     G.token++;
-    G.final = G.search.best.placements;
+    G.result = G.S.result();
+    G.final = G.result.placements.map(fromJob);
     G.from = new Map(G.placements.map((p) => [p.id, p]));
     G.stagger = Math.min(120, (MOVE_TOTAL_MS - MOVE_MS) / Math.max(1, G.final.length - 1));
     G.moveDur = (G.final.length - 1) * G.stagger + MOVE_MS;
     G.moveT0 = performance.now();
     showPanel('solve');
-    $('solveIters').textContent = G.search.iterations;
+    $('solveIters').textContent = G.result.stats.iterations;
     $('solveHuman').textContent = `${G.human.length} cm`;
-    $('solveBest').textContent = `${G.search.best.length} cm`;
+    $('solveBest').textContent = `${G.result.length} cm`;
     setHeading('TelaTetris reacomoda tus piezas', 'Mismas piezas, mismo hilo, misma separación de corte.');
     resize();
 
@@ -352,7 +365,7 @@
         rot: from.rot,
         x: from.x + (to.x - from.x) * e,
         y: from.y + (to.y - from.y) * e,
-        angle: from.rot !== to.rot ? Math.PI * e : 0,
+        angle: ((to.rot - from.rot) * Math.PI / 180) * e,
         state: p <= 0 ? 'waiting' : p >= 1 ? 'done' : 'moving',
       };
     });
@@ -362,8 +375,8 @@
 
   function showResults() {
     G.phase = 'result';
-    G.algo = TT.metrics(G.pieces, G.final, ROLL_W);
-    const shelf = TT.metrics(G.pieces, G.shelf, ROLL_W);
+    G.algo = G.result;
+    const shelf = G.result.baseline;
     const human = G.human;
     const saved = human.length - G.algo.length;
     const pct = human.length ? (saved / human.length) * 100 : 0;
@@ -402,13 +415,13 @@
       <tr class="tt"><td>TelaTetris</td><td>${G.algo.length} cm</td><td>${pc(G.algo.utilization)}</td></tr>
       <tr class="ref"><td>Por estantes</td><td>${shelf.length} cm</td><td>${pc(shelf.utilization)}</td></tr>`;
 
-    const vh = TT.validate(G.pieces, G.placements, ROLL_W, G.L, GAP);
-    const va = TT.validate(G.pieces, G.final, ROLL_W, G.algoL, GAP);
+    const vh = G.human.check;
+    const va = G.algo.check;
     const mark = (b) => `<span class="${b ? 'ok' : 'bad'}">${b ? '✓' : '✕'}</span>`;
     $('checks').innerHTML = `
       <span></span><span class="h">Tú</span><span class="h">TelaTetris</span>
-      <span>Sin traslapes</span>${mark(vh.noOverlap)}${mark(va.noOverlap)}
-      <span>Hilo respetado</span>${mark(vh.grain)}${mark(va.grain)}
+      <span>Sin traslapes</span>${mark(vh.inBounds && vh.noOverlap)}${mark(va.inBounds && va.noOverlap)}
+      <span>Hilo respetado</span>${mark(vh.rotations)}${mark(va.rotations)}
       <span>Piezas completas</span>${mark(vh.complete)}${mark(va.complete)}`;
 
     showPanel('result');
@@ -433,7 +446,7 @@
     const show = G.queue.slice(0, 5);
     show.forEach((id, i) => {
       const b = document.createElement('button');
-      b.title = `${G.pieces[id].name} ${G.pieces[id].size}`;
+      b.title = `${G.pieces[id].data.name} ${G.pieces[id].data.size}`;
       if (i === 0) b.className = 'first';
       const c = document.createElement('canvas');
       b.appendChild(c);
@@ -456,7 +469,7 @@
     }
     const n = G.pieces.length, placed = G.placements.length;
     $('sPieces').textContent = `${placed}/${n}`;
-    const m = TT.metrics(G.pieces, G.placements, ROLL_W);
+    const m = G.P.metrics(G.placements);
     $('sLen').innerHTML = `${m.length}<small>cm</small>`;
     $('sWaste').textContent = placed ? pc(m.waste) : '–';
     $('bUndo').disabled = placed === 0 || G.timeUp;
@@ -527,7 +540,7 @@
     if (!G) return 300;
     let L = G.L;
     if (G.phase !== 'play') L = Math.max(L, cutLength() + 25);
-    if (G.final) L = Math.max(L, TT.layoutLength(G.pieces, G.final) + 25);
+    if (G.final) L = Math.max(L, G.P.layoutLength(G.final) + 25);
     return L;
   }
 
@@ -706,7 +719,7 @@
     g.fillStyle = COL.muted;
     g.font = `500 13px ${FONT}`;
     const n = G.timeUp ? G.autoIds.size : 0;
-    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(h.waste)} desperdicio`, cx, y + 124 * k);
+    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(1 - h.utilization)} desperdicio`, cx, y + 124 * k);
     // countdown bar
     const p = G.reviewT0 ? Math.min(1, (performance.now() - G.reviewT0) / REVIEW_MS) : 0;
     g.fillStyle = '#333';
@@ -747,7 +760,7 @@
   }
 
   function drawPiece(g, piece, rot, px, py, s, o) {
-    const v = TT.variantOf(piece, rot);
+    const v = Arrange.variantOf(piece, rot);
     g.beginPath();
     v.poly.forEach(([x, y], i) => (i ? g.lineTo(px + x * s, py + y * s) : g.moveTo(px + x * s, py + y * s)));
     g.closePath();
@@ -760,7 +773,7 @@
       return;
     }
     const a = g.globalAlpha;
-    g.fillStyle = o.bad ? COL.orange : piece.color;
+    g.fillStyle = o.bad ? COL.orange : piece.data.color;
     if (o.held) g.globalAlpha = a * (o.bad ? 0.75 : 0.92);
     g.fill();
     g.globalAlpha = a;
@@ -770,8 +783,8 @@
     g.stroke();
 
     // grain line: double arrow along x
-    if (piece.arrow && piece.w * s > 26) {
-      const cxOff = piece.type === 'manga' ? (rot === 0 ? 0.58 : 0.42) : 0.55;
+    if (piece.data.arrow && piece.w * s > 26) {
+      const cxOff = piece.data.type === 'manga' ? (rot === 0 ? 0.58 : 0.42) : 0.55;
       const cx = px + piece.w * s * (rot === 0 ? cxOff : 1 - cxOff);
       const cy = py + (piece.h * s) / 2;
       const half = Math.min(piece.w * 0.22, 14) * s;
@@ -785,7 +798,7 @@
       if (piece.h * s > 50 && !o.noLabel) {
         g.font = `700 ${Math.max(9, Math.min(12, s * 4))}px ${FONT}`;
         g.textAlign = 'center'; g.textBaseline = 'top';
-        g.fillText(piece.size, cx, cy + hs + 3);
+        g.fillText(piece.data.size, cx, cy + hs + 3);
         g.textAlign = 'left';
       }
     }

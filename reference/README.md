@@ -8,5 +8,5 @@ packing via image processing and computational intelligence", *Scientific Report
 
     python demo.py layout.png
 
-The game's engine (`../engine.js`) ports this method to JavaScript, and adds an order
-search and per-piece hole filling.
+The engine (`../arrange/arrange.js`) ports this method to JavaScript, and adds an order
+search, per-item hole filling and blocked regions.

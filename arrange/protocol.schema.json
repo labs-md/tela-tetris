@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arrange.local/protocol/1",
+  "title": "Arrange protocol, version 1",
+  "description": "Messages between the Arrange engine and its connectors. Validate a request against #/$defs/request and a response against #/$defs/response. See PROTOCOL.md.",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "required": ["protocol", "strip", "items"],
+      "properties": {
+        "protocol": { "const": "arrange/1" },
+        "task": { "enum": ["solve", "evaluate"], "default": "solve" },
+        "units": { "type": "string", "description": "Label for the connector's length unit. Echoed back, never interpreted." },
+        "cellSize": { "type": "number", "exclusiveMinimum": 0, "default": 1, "description": "Units per grid cell." },
+        "strip": { "$ref": "#/$defs/strip" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/item" }, "minItems": 1 },
+        "search": { "$ref": "#/$defs/search" },
+        "baseline": { "type": "boolean", "default": true, "description": "Include the shelf baseline in the response." },
+        "placements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/inputPlacement" },
+          "description": "The layout to check. Required when task is evaluate."
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "required": ["protocol", "status"],
+      "properties": {
+        "protocol": { "const": "arrange/1" },
+        "status": { "enum": ["ok", "incomplete", "rejected", "invalid"] },
+        "units": { "type": "string" },
+        "errors": { "type": "array", "items": { "type": "string" }, "description": "Only when status is invalid." },
+        "length": { "type": "number", "description": "Strip length used, in units." },
+        "utilization": { "type": "number", "minimum": 0, "description": "Item area / strip area used, blocked area excluded." },
+        "placements": { "type": "array", "items": { "$ref": "#/$defs/placement" } },
+        "unplaced": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "check": { "$ref": "#/$defs/check" },
+        "baseline": {
+          "type": "object",
+          "required": ["length", "utilization"],
+          "properties": { "length": { "type": "number" }, "utilization": { "type": "number" } }
+        },
+        "stats": {
+          "type": "object",
+          "required": ["iterations", "ms", "grid", "cellSize"],
+          "properties": {
+            "iterations": { "type": "integer", "minimum": 1 },
+            "ms": { "type": "number", "minimum": 0 },
+            "grid": {
+              "type": "object",
+              "required": ["width", "length"],
+              "properties": { "width": { "type": "integer" }, "length": { "type": "integer" } }
+            },
+            "cellSize": { "type": "number" }
+          }
+        }
+      },
+      "if": { "properties": { "status": { "const": "invalid" } } },
+      "then": { "required": ["errors"] },
+      "else": { "required": ["length", "utilization", "placements", "unplaced", "check"] }
+    },
+    "strip": {
+      "type": "object",
+      "required": ["width"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "gap": { "type": "number", "minimum": 0, "default": 0, "description": "Minimum distance between items and from edges and blocked regions." },
+        "maxLength": { "type": "number", "exclusiveMinimum": 0, "description": "Optional. Items that don't fit are reported in unplaced." },
+        "blocked": { "type": "array", "items": { "$ref": "#/$defs/polygon" }, "description": "Regions no item may cover, in strip coordinates." }
+      }
+    },
+    "search": {
+      "type": "object",
+      "properties": {
+        "seed": { "type": "number", "default": 1 },
+        "iterations": { "type": "number", "default": 200, "description": "Item orders to try, the first pass included." },
+        "timeMs": { "type": "number", "default": 5000 }
+      }
+    },
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polygon": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/point" },
+      "minItems": 3
+    },
+    "item": {
+      "type": "object",
+      "required": ["polygon"],
+      "properties": {
+        "key": { "type": "string", "description": "The connector's own id for this item. Defaults to the item's index." },
+        "polygon": { "$ref": "#/$defs/polygon" },
+        "rotations": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1,
+          "default": [0],
+          "description": "Allowed rotations in degrees, clockwise with y down."
+        },
+        "quantity": { "type": "integer", "minimum": 1, "default": 1 },
+        "data": { "description": "Anything. The engine never reads it." }
+      }
+    },
+    "inputPlacement": {
+      "type": "object",
+      "required": ["item", "x", "y"],
+      "properties": {
+        "item": { "type": "integer", "minimum": 0, "description": "Index after expanding quantities." },
+        "rotation": { "type": "number", "default": 0 },
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "required": ["item", "key", "copy", "rotation", "x", "y", "translate", "polygon"],
+      "properties": {
+        "item": { "type": "integer", "minimum": 0 },
+        "key": { "type": "string" },
+        "copy": { "type": "integer", "minimum": 0 },
+        "rotation": { "type": "number" },
+        "x": { "type": "number", "description": "Left of the item's bounding box on the strip." },
+        "y": { "type": "number", "description": "Top of the item's bounding box on the strip." },
+        "translate": {
+          "$ref": "#/$defs/point",
+          "description": "Rotate the original polygon by rotation about its origin, then add this."
+        },
+        "polygon": { "$ref": "#/$defs/polygon", "description": "The placed outline, in strip coordinates." }
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": ["inBounds", "noOverlap", "rotations", "complete", "ok"],
+      "properties": {
+        "inBounds": { "type": "boolean" },
+        "noOverlap": { "type": "boolean" },
+        "rotations": { "type": "boolean" },
+        "complete": { "type": "boolean" },
+        "ok": { "type": "boolean" }
+      }
+    }
+  }
+}

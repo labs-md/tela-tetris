@@ -1,0 +1,26 @@
+{
+  "protocol": "arrange/1",
+  "units": "mm",
+  "cellSize": 5,
+  "strip": {
+    "width": 300,
+    "gap": 5,
+    "blocked": [[[100, 120], [140, 120], [140, 160], [100, 160]]]
+  },
+  "items": [
+    {
+      "key": "bracket",
+      "polygon": [[0, 0], [160, 0], [160, 40], [40, 40], [40, 120], [0, 120]],
+      "rotations": [0, 90, 180, 270],
+      "quantity": 3,
+      "data": { "sku": "BR-160" }
+    },
+    {
+      "key": "gusset",
+      "polygon": [[0, 0], [110, 0], [0, 110]],
+      "rotations": [0, 90, 180, 270],
+      "quantity": 4
+    }
+  ],
+  "search": { "seed": 1, "iterations": 40, "timeMs": 3000 }
+}

@@ -1,34 +1,22 @@
-# TelaTetris: demo game
+# Arrange + TelaTetris
 
-Open `index.html` in a browser. There's no build step and no server, and it works offline (if Google Fonts can't load, the page falls back to system fonts).
+Arrange lays out irregular shapes on a strip of fixed width so they use as little length as possible. It doesn't care what the strip is. A fabric roll, a steel coil and a glass panel are the same problem once you say how wide the strip is, how far apart parts must stay, which rotations each part allows, and where the strip has defects.
 
-1. **Your turn (1:30).** Pieces arrive in a queue. Place them on a 150 cm roll. The cut line and the waste update live. The clock starts on the first interaction. It turns orange at 15 s, and a warning appears at 10 s. When time runs out, the remaining pieces are laid out in shelves after your cut line, so the comparison always covers the full order, and "¡Se acabó el tiempo!" shows before TelaTetris's turn.
-2. **Your result.** When the last piece is placed, your roll length shows for 3.5 s. The algorithm searches in the background meanwhile. Undo (or clicking a piece) cancels this and returns you to your turn. The button or Enter skips the countdown.
-3. **TelaTetris's turn.** Your own pieces fly one by one, on the same roll, to where the algorithm puts them.
-4. **Result.** Roll saved (the gap between your cut line and TelaTetris's), fabric use compared with the shelf baseline, and the validator.
+TelaTetris is the demo built on it: you lay out a T-shirt order on a fabric roll against the clock, then the engine rearranges your own pieces and shows how much roll it saves.
 
-## Controls
+| Path | What it is |
+|---|---|
+| [`arrange/`](arrange/README.md) | The engine. One dependency-free JS file for browser and Node. API and model are in its README. |
+| [`demo/`](demo/README.md) | TelaTetris, the fabric use case. Open `demo/index.html`. |
+| `examples/sheet-metal.js` | A second use case: steel parts on a 1 m coil, 90° rotations, a rust spot to avoid. |
+| `test/` | Engine tests. |
+| [`reference/`](reference/README.md) | The paper's algorithm in Python. |
 
-| Action | Mouse / touch | Keyboard |
-|---|---|---|
-| Move piece | move / drag | arrows (Shift = 5 cm) |
-| Place | click / release | Enter |
-| Slide to the start of the roll and place | n/a | Space |
-| Rotate 180° | right-click, wheel, button | R |
-| Next piece | click a queue tile | C |
-| Pick up a placed piece | click it | n/a |
-| Undo | button | Z / Backspace |
+```sh
+npm test                                   # engine tests (Node 18+)
+node examples/sheet-metal.js layout.svg    # pack the metal parts, write an SVG
+```
 
-"Completar por estantes" lays out every remaining piece in shelves, which is how small factories often do it by hand. Use it when there's no time for a juror to place every piece.
+## Adding a use case
 
-## Files
-
-- `engine.js`: pieces, rasterization, validation, shelf baseline, and the NCC algorithm (Meng et al. 2025) plus an order search. Pure JS. It runs in the browser (`window.TT`) and in Node (`require`).
-- `game.js`: game state, input, canvas drawing.
-- `index.html`: layout and styles.
-
-## Things you can tune
-
-- `game.js`: `TURN_MS` (time limit, 90 s), `ROLL_W` (roll width), `GAP` (cutting gap in cm), `REVIEW_MS` (how long your result shows; it's also the search time), `MOVE_MS` / `MOVE_TOTAL_MS` (animation).
-- `engine.js`: `PIECE_TYPES` (outlines in cm), `GARMENT` (pieces per garment), `SIZE_SCALE`.
-  Replace these with real patterns (for example, polygons exported from DXF) to show a factory its own order.
+Write a small module like `demo/garments.js` that turns your domain's input into item specs: an outline in cells, the allowed rotations, a quantity, and whatever `data` you want back. Pass them to `Arrange.createProblem` with the strip width, gap and any blocked regions. Everything after that (packing, the shelf baseline, validation, metrics) is the engine's job.
