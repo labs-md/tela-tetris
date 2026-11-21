@@ -52,7 +52,7 @@ For each item in order, `nccGreedy`:
 
 The template is the body grown by `gap`. A cell joins the template when its nearest edge is closer than `gap` to a body cell, so no two bodies end up closer than `gap`, diagonals included. For a 1-cell gap this is exactly the paper's disk (Eq. 1). For larger gaps the paper's disk would let corners get closer, so the engine doesn't use it.
 
-`search` wraps the pass: start from largest-first, mutate the order (swap two items or move one), keep the mutation if the layout is no longer, prefer fewer failed items over a shorter length. Runs are deterministic for a given seed.
+`search` wraps the pass: start from largest-first, mutate the order (swap two items or move one), keep the mutation if the layout is no longer, prefer fewer failed items over a shorter length. The result is the best layout found within the budget, not a proven optimum.
 
 Cost per pass is about `items × rotations × width × window × template rows`. The garment order (24 pieces, 2 rotations, 150 × ~400 cells) takes about 35 ms. Halving `cellSize` roughly multiplies that by 8: four times the cells, and templates with twice as many rows.
 

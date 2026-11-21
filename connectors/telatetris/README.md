@@ -1,8 +1,8 @@
-# TelaTetris: the garment connector
+# TelaTetris: the demo
 
 Open `index.html` in a browser. There's no build step and no server, and it works offline (if Google Fonts can't load, the page falls back to system fonts).
 
-The game is a connector for the [Arrange engine](../../README.md): T-shirt pieces on a fabric roll, in cm, on 1 cm cells, with rotations limited to 0° and 180° so the grain line stays along the roll.
+TelaTetris is the name and brand of the demo. Underneath, it is a connector for the [Arrange engine](../../README.md), and the game's opponent, called TelaTetris on screen, is the engine. The domain is T-shirt pieces on a fabric roll, in cm, on 1 cm cells, with rotations limited to 0° and 180° so the grain line stays along the roll.
 
 ## How a round goes
 

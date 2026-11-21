@@ -73,7 +73,7 @@
     "search": {
       "type": "object",
       "properties": {
-        "seed": { "type": "number", "default": 1 },
+        "seed": { "type": "number", "default": 1, "description": "Starting point for the random order search." },
         "iterations": { "type": "number", "default": 200, "description": "Item orders to try, the first pass included." },
         "timeMs": { "type": "number", "default": 5000 }
       }

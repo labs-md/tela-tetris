@@ -1,8 +1,14 @@
 # Arrange
 
-Arrange lays out irregular shapes on a strip of fixed width, using as little length as it can. A fabric roll, a steel coil, a glass sheet and a roll of vinyl are the same problem once you know four things: how wide the strip is, how far apart the parts must stay, which rotations each part allows, and where the strip has defects.
+Arrange is an engine for laying out flat parts on material with as little waste as possible. The goal is to arrange parts on any 2D surface.
 
-The engine is one dependency-free JavaScript file. Everything around it is a **connector**: a small program that turns one domain's input into a request, and the engine's response back into that domain's output. TelaTetris, the fabric game, is one connector. The sheet-metal script is another.
+Today it handles material that comes as a strip of fixed width and open length, such as a fabric roll or a steel coil, and uses as little of the strip as it can. Any such material is the same problem once you know four things: how wide the strip is, how far apart the parts must stay, which rotations each part allows, and where the strip has defects.
+
+**Try the demo:** open [`connectors/telatetris/index.html`](connectors/telatetris/index.html) in a browser. No build step, no server. TelaTetris is the demo: you lay out a T-shirt order on a fabric roll against the clock, then the engine rearranges your own pieces and compares how much roll each layout uses. Inside the game, the engine plays under the TelaTetris name.
+
+The engine is one dependency-free JavaScript file. Everything around it is a **connector**: a small program that turns one domain's input into a request, and the engine's response back into that domain's output. The TelaTetris demo is one connector. The sheet-metal script is another.
+
+**Status: proof of concept.** TelaTetris is how we show it: a person and the engine lay out the same garment order, and both results are measured against a shelf layout, the way it's often done by hand. The protocol is how other materials and industries would connect, each through its own connector. Today the game is the only connector in use. The sheet-metal script is a worked example.
 
 ```mermaid
 flowchart LR
@@ -144,7 +150,7 @@ node connectors/sheet-metal/sheet-metal.js --request | node arrange/cli.js   # s
 node arrange/cli.js arrange/examples/minimal.json           # the smallest complete request
 ```
 
-Open `connectors/telatetris/index.html` in a browser for the game. It needs no build step and no server.
+Open `connectors/telatetris/index.html` in a browser for the TelaTetris demo.
 
 ## Layout
 
@@ -182,6 +188,7 @@ Arrange is an independent implementation. The order search, blocked regions, edg
 
 ## Limits
 
+- Results are a best effort: the shortest valid layout the search found within its budget, not a proven optimum. Two runs of the same job can differ, since a faster machine tries more orders in the same time.
 - One open-ended strip. Fixed-size sheets, where parts spill onto the next sheet, would need a new task in the protocol.
 - No mirroring. If a part may flip, send the mirrored outline as a second item.
 - A part's cut-outs are filled, so nothing nests inside another part's hole.

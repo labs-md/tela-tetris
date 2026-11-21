@@ -5,6 +5,7 @@ This is the contract between the engine and its connectors. A connector translat
 - Machine-readable schema: [`protocol.schema.json`](protocol.schema.json). Validate requests against `#/$defs/request` and responses against `#/$defs/response`.
 - Example request: [`examples/minimal.json`](examples/minimal.json).
 - Protocol id: `"arrange/1"`. A change that would break an existing connector gets a new id (`arrange/2`). Adding an optional field doesn't.
+- Status: proof of concept. The shape is settled enough to build connectors against, and details may still change before it's declared stable.
 
 ## Transports
 
@@ -67,11 +68,15 @@ The strip's length runs along **x**, from 0 to the right, open-ended. Its width 
 | `items[].rotations` | no | `[0]` | Allowed rotations. Fabric with a grain line uses `[0, 180]`, sheet metal `[0, 90, 180, 270]`. Multiples of 90 are exact. Other angles work, with some rounding at the outline. |
 | `items[].quantity` | no | `1` | Copies of this item. |
 | `items[].data` | no | | Anything. The engine never reads it. In JavaScript sessions it's available on the item. |
-| `search.seed` | no | `1` | Same request and seed give the same layout. |
+| `search.seed` | no | `1` | Starting point for the random order search. A different seed explores different orders. |
 | `search.iterations` | no | `200` | How many item orders to try, the first pass included. |
 | `search.timeMs` | no | `5000` | Time budget. The search stops at whichever limit comes first. |
 | `baseline` | no | `true` | Also lay out the items by shelves and report that length, as the number to beat. |
 | `placements` | for `evaluate` | | The layout to check, see below. |
+
+### What `solve` promises
+
+`solve` is a best effort. It returns the shortest valid layout it found within the search budget. It doesn't guarantee the shortest possible layout, and two runs of the same request can differ: a faster machine tries more orders in the same `timeMs`. Every layout it returns has passed the placement rules, whatever the budget.
 
 ### Item indices
 
