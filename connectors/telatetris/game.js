@@ -1,5 +1,6 @@
 /*
  * TelaTetris game.
+ *   intro  → the order's T-shirt comes apart and its pieces fly into the piece bank
  *   play   → the player lays out the order
  *   review → the player's roll length is shown; the algorithm searches meanwhile
  *   move   → the player's own pieces fly into the algorithm's layout
@@ -17,22 +18,196 @@
   const MOVE_TOTAL_MS = 3200; // target length of the whole rearrangement
   const MAX_PER_SIZE = 4;
 
+  // Labs palette (labs.gt) plus the warm darks of the cabinet.
   const COL = {
-    roll: '#262626', grid: '#2f2f2f', grid50: '#3a3a3a', edge: '#5e5e5e',
-    ink: '#141414', text: '#f2f2ee', muted: '#a3a39c',
-    lime: '#e9fb5a', orange: '#ff5a00', hatchBg: '#46220f', hatch: '#b84a16',
+    roll: '#262622', dot: '#3a3934', dot50: '#55534b', line50: '#2e2d29', edge: '#5c5a53',
+    ink: '#141413', text: '#ffffff', muted: '#CFCFCD', dim: '#8F8C85',
+    yellow: '#E8FB5B', orange: '#F95300', black: '#1C1C1B', olive: '#3B3D2B', panel: '#242420',
+    hatchBg: '#3a1d0c', hatch: '#9c3f0d',
   };
-  const FONT = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  const FONT = '"IBM Plex Mono", monospace';
+  const PIX = '"Press Start 2P", monospace';
+  const PLAY_TITLE = 'Tu turno: acomoda el pedido';
+  const PLAY_SUB = 'Gana el tendido que use menos rollo. El reloj corre desde tu primer movimiento.';
 
   const $ = (id) => document.getElementById(id);
   const canvas = $('board');
   const ctx = canvas.getContext('2d');
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   let counts = { S: 1, M: 2, L: 1, XL: 0 };
   let G = null;              // current game
   let view = null;           // last layout geometry, for pointer mapping
   let renderQueued = false;
   let hatch = null;
+  let intro = null;          // attract sequence state, or null
+  const shirtIcons = {};     // size → canvas in the order card
+  const sizeCards = {};      // size → its order card
+  const tileEls = new Map(); // "<type>-<size>" → its piece-bank tile
+
+  // ------------------------------------------------------------ sound ---
+  // Tiny square-wave synth. Silent until the first user gesture.
+
+  const Sound = (() => {
+    let ac = null;
+    let on = true;
+    try { on = window.localStorage.getItem('telatetris-sound') !== 'off'; } catch (e) { /* no storage */ }
+    function audio() {
+      if (!on) return null;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try {
+        if (!ac) ac = new AC();
+        if (ac.state === 'suspended') ac.resume();
+      } catch (e) { return null; }
+      return ac;
+    }
+    function tone(f, dur = 0.08, { type = 'square', vol = 0.05, to = 0, at = 0 } = {}) {
+      const a = audio();
+      if (!a) return;
+      const t = a.currentTime + at;
+      const o = a.createOscillator();
+      const gn = a.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f, t);
+      if (to) o.frequency.exponentialRampToValueAtTime(to, t + dur);
+      gn.gain.setValueAtTime(vol, t);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(gn);
+      gn.connect(a.destination);
+      o.start(t);
+      o.stop(t + dur + 0.03);
+    }
+    const seq = (notes, step, opts = {}) => notes.forEach((f, i) => tone(f, step * 1.15, { ...opts, at: i * step }));
+    const fx = {
+      place: () => { tone(196, 0.05, { vol: 0.06 }); tone(392, 0.07, { at: 0.04, vol: 0.035 }); },
+      rotate: () => tone(660, 0.04, { vol: 0.03, type: 'triangle' }),
+      pick: () => tone(520, 0.08, { to: 300, vol: 0.035 }),
+      select: () => tone(880, 0.03, { vol: 0.02 }),
+      bad: () => tone(98, 0.16, { type: 'sawtooth', vol: 0.045 }),
+      shirt: () => seq([523, 659, 784, 1047], 0.07, { vol: 0.04 }),
+      tick: () => tone(1046, 0.04, { vol: 0.025 }),
+      timeUp: () => seq([440, 349, 294, 220], 0.12, { vol: 0.05 }),
+      count: () => tone(587, 0.07, { vol: 0.035 }),
+      go: () => seq([587, 880, 1175], 0.07, { vol: 0.045 }),
+      fly: (i) => tone(320 + (i % 12) * 40, 0.05, { type: 'triangle', vol: 0.025 }),
+      win: () => seq([523, 659, 784, 1047, 0.0001, 784, 1047, 1319], 0.085, { vol: 0.045 }),
+      lose: () => seq([392, 330, 262, 196], 0.13, { vol: 0.045 }),
+      pop: () => tone(180, 0.14, { to: 720, vol: 0.04 }),
+      burst: () => tone(900, 0.28, { to: 140, vol: 0.035, type: 'sawtooth' }),
+      whoosh: () => tone(140, 0.45, { to: 620, vol: 0.03, type: 'triangle' }),
+      start: () => seq([392, 523, 659, 784], 0.06, { vol: 0.04 }),
+    };
+    return {
+      fx,
+      get on() { return on; },
+      toggle() {
+        on = !on;
+        try { window.localStorage.setItem('telatetris-sound', on ? 'on' : 'off'); } catch (e) { /* no storage */ }
+        if (on) fx.select();
+        return on;
+      },
+    };
+  })();
+  const sfx = (name, ...args) => { try { Sound.fx[name](...args); } catch (e) { /* audio is optional */ } };
+
+  // ----------------------------------------------------- T-shirt model ---
+  // One T-shirt drawn from its real pattern pieces. Poses are in cm around the
+  // shirt's centre: x, y, a = screen angle of the piece's grain axis (degrees),
+  // ys = scale across the grain (a worn sleeve shows folded in half).
+
+  const TYPES = Garments.PIECE_TYPES;
+  const BOUNDS = {};
+  for (const [k, t] of Object.entries(TYPES)) {
+    BOUNDS[k] = {
+      w: Math.max(...t.poly.map((p) => p[0])),
+      h: Math.max(...t.poly.map((p) => p[1])),
+    };
+  }
+
+  // Back to front.
+  const PARTS = [
+    { id: 'mangaL', type: 'manga', k: 1, label: 'MANGA' },
+    { id: 'mangaR', type: 'manga', k: 2, label: 'MANGA' },
+    { id: 'espalda', type: 'espalda', k: 1, label: 'ESPALDA' },
+    { id: 'delantero', type: 'delantero', k: 1, label: 'DELANTERO' },
+    { id: 'bolsillo', type: 'bolsillo', k: 1, label: 'BOLSILLO' },
+    { id: 'cuello', type: 'cuello', k: 1, label: 'CUELLO' },
+  ];
+
+  const WORN = {
+    mangaL: { x: -28.8, y: -20.7, a: 168, ys: 0.5 },
+    mangaR: { x: 28.8, y: -20.7, a: 12, ys: 0.5 },
+    espalda: { x: 0, y: 0, a: 90 },
+    delantero: { x: 0, y: 0, a: 90 },
+    bolsillo: { x: 12, y: -11, a: 90 },
+    cuello: { pts: [[-8.5, -35.2], [0, -27.6], [8.5, -35.2]] },
+  };
+  const EXPLODED = {
+    mangaL: { x: -90, y: -14, a: 168 },
+    mangaR: { x: 90, y: -14, a: 12 },
+    espalda: { x: 37, y: 2, a: 90 },
+    delantero: { x: -37, y: 2, a: 90 },
+    bolsillo: { x: 0, y: 26, a: 90 },
+    cuello: { x: 0, y: -46, a: 90 },
+  };
+  const collarPts = (p) => {
+    const r = (p.a * Math.PI) / 180;
+    const dx = -Math.sin(r) * 22, dy = Math.cos(r) * 22;
+    return [[p.x - dx, p.y - dy], [p.x, p.y], [p.x + dx, p.y + dy]];
+  };
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const lerpPose = (A, B, t) => ({ x: lerp(A.x, B.x, t), y: lerp(A.y, B.y, t), a: lerp(A.a, B.a, t), ys: lerp(A.ys ?? 1, B.ys ?? 1, t) });
+  const lerpPts = (A, B, t) => A.map((p, i) => [lerp(p[0], B[i][0], t), lerp(p[1], B[i][1], t)]);
+
+  function partPath(g, type, pose, s, cx, cy, sc = 1) {
+    const { w, h } = BOUNDS[type];
+    const r = (pose.a * Math.PI) / 180, c = Math.cos(r), sn = Math.sin(r), ys = pose.ys ?? 1;
+    g.beginPath();
+    TYPES[type].poly.forEach(([x, y], i) => {
+      const lx = (x - w / 2) * sc, ly = (y - h / 2) * sc * ys;
+      const X = cx + (pose.x * sc + lx * c - ly * sn) * s;
+      const Y = cy + (pose.y * sc + lx * sn + ly * c) * s;
+      if (i) g.lineTo(X, Y); else g.moveTo(X, Y);
+    });
+    g.closePath();
+  }
+
+  function strokeCollar(g, pts, s, cx, cy, sc, style) {
+    g.beginPath();
+    pts.forEach(([x, y], i) => {
+      const X = cx + x * sc * s, Y = cy + y * sc * s;
+      if (i) g.lineTo(X, Y); else g.moveTo(X, Y);
+    });
+    g.lineJoin = 'round';
+    g.lineCap = 'butt';
+    if (style === 'empty') {
+      g.setLineDash([2, 2]); g.strokeStyle = COL.dim; g.lineWidth = 1; g.stroke(); g.setLineDash([]);
+      return;
+    }
+    g.strokeStyle = COL.ink; g.lineWidth = 4 * sc * s + 3; g.stroke();
+    g.strokeStyle = TYPES.cuello.color; g.lineWidth = Math.max(1, 4 * sc * s - 1); g.stroke();
+  }
+
+  function fillPart(g, type, style, lw = 2) {
+    if (style === 'empty') {
+      g.fillStyle = 'rgba(255,255,255,0.03)'; g.fill();
+      g.setLineDash([2, 2]); g.strokeStyle = COL.dim; g.lineWidth = 1; g.stroke(); g.setLineDash([]);
+      return;
+    }
+    g.fillStyle = TYPES[type].color; g.fill();
+    g.strokeStyle = COL.ink; g.lineWidth = lw; g.stroke();
+  }
+
+  /** The worn T-shirt; `styleOf(part)` returns 'fill' or 'empty'. */
+  function drawShirt(g, cx, cy, s, sc, styleOf, lw = 2) {
+    for (const part of PARTS) {
+      const style = styleOf(part);
+      if (part.type === 'cuello') { strokeCollar(g, WORN.cuello.pts, s, cx, cy, sc, style); continue; }
+      partPath(g, part.type, WORN[part.id], s, cx, cy, sc);
+      fillPart(g, part.type, style, lw);
+    }
+  }
 
   // ------------------------------------------------------------ setup ---
 
@@ -46,6 +221,12 @@
     const S = Arrange.session(job);
     const P = S.problem;   // cells = cm, since the job's cellSize is 1
     const pieces = P.items;
+    const groups = new Map();
+    for (const piece of pieces) {
+      const key = `${piece.data.type}-${piece.data.size}`;
+      if (!groups.has(key)) groups.set(key, { piece, ids: [] });
+      groups.get(key).ids.push(piece.id);
+    }
     const shelf = P.shelf();
     const shelfLen = P.layoutLength(shelf);
     const L = Math.ceil(shelfLen + 20);
@@ -55,15 +236,17 @@
       [queue[i], queue[j]] = [queue[j], queue[i]];
     }
     G = {
-      phase: 'play', token: 0, S, P, pieces, shelf, shelfLen, L,
+      phase: 'play', token: 0, S, P, pieces, groups, shelf, shelfLen, L,
       board: P.board(L),
       placements: [], queue, held: null,
       t0: null, elapsed: 0, timeUp: false, warned: false, autoIds: new Set(),
       searching: false, human: null, algo: null, final: null, from: null,
+      shirtsDone: {}, flash: null, lastTick: null, lastCount: null, flown: -1,
     };
     spawn(G.queue.shift());
     showPanel('play');
-    setHeading('Tu turno: acomoda el pedido', 'Gana el tendido que use menos rollo.');
+    setHeading(PLAY_TITLE, PLAY_SUB);
+    setStep(3);
     $('keys').style.visibility = '';
     renderOrder();
     updateSide();
@@ -75,26 +258,54 @@
     $('stageSub').textContent = sub;
   }
 
+  /** Header rail: 1 Playeras · 2 Piezas · 3 Tu tendido · 4 TelaTetris · 5 Ahorro. */
+  function setStep(n) {
+    for (let i = 1; i <= 5; i++) {
+      const el = $(`step${i}`);
+      el.classList.toggle('done', i < n);
+      el.classList.toggle('on', i === n);
+      el.classList.toggle('tt', i === n && i === 4);
+    }
+  }
+
+  const totalShirts = () => Object.values(counts).reduce((a, b) => a + b, 0);
+
   function renderOrder() {
     const box = $('sizes');
     box.innerHTML = '';
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const total = totalShirts();
     for (const size of Object.keys(Garments.SIZE_SCALE)) {
       const el = document.createElement('div');
-      el.className = 'size';
-      el.innerHTML = `<b>${size}</b><button aria-label="menos ${size}">−</button><span>${counts[size]}</span><button aria-label="más ${size}">+</button>`;
-      const [minus, plus] = el.querySelectorAll('button');
+      el.className = counts[size] ? 'size' : 'size zero';
+      sizeCards[size] = el;
+      const icon = document.createElement('canvas');
+      icon.setAttribute('aria-hidden', 'true');
+      shirtIcons[size] = icon;
+      const name = document.createElement('b');
+      name.textContent = size;
+      const stepper = document.createElement('div');
+      stepper.className = 'stepper';
+      const minus = document.createElement('button');
+      minus.textContent = '−';
+      minus.setAttribute('aria-label', `menos playeras ${size}`);
+      const n = document.createElement('span');
+      n.textContent = String(counts[size]);
+      const plus = document.createElement('button');
+      plus.textContent = '+';
+      plus.setAttribute('aria-label', `más playeras ${size}`);
       minus.disabled = counts[size] === 0 || total === 1;
       plus.disabled = counts[size] >= MAX_PER_SIZE;
       minus.onclick = () => changeOrder(size, -1);
       plus.onclick = () => changeOrder(size, +1);
+      stepper.appendChild(minus); stepper.appendChild(n); stepper.appendChild(plus);
+      el.appendChild(icon); el.appendChild(name); el.appendChild(stepper);
       box.appendChild(el);
     }
-    const n = total * Garments.PIECES_PER_GARMENT;
-    $('orderMeta').textContent = `${total} ${total === 1 ? 'playera' : 'playeras'} · ${n} piezas · rollo ${ROLL_W} cm`;
+    $('orderShirts').textContent = `${total} ${total === 1 ? 'playera' : 'playeras'}`;
   }
 
   function changeOrder(size, d) {
+    if (intro) endIntro();
     if (G && G.phase === 'move') return;
     if (G && (G.phase === 'play' || G.phase === 'review') && G.placements.length > 0 &&
         !confirm('Cambiar el pedido reinicia el tendido. ¿Continuar?')) return;
@@ -150,17 +361,51 @@
 
   function startClock() { if (G.t0 === null) G.t0 = performance.now(); }
 
+  /** Complete T-shirts of one size whose every piece is on the roll. */
+  function shirtsDone(size, placements = G.placements) {
+    const placed = {};
+    for (const p of placements) {
+      const d = G.pieces[p.id].data;
+      if (d.size === size) placed[d.type] = (placed[d.type] || 0) + 1;
+    }
+    return Math.min(...Garments.GARMENT.map(([type, qty]) => Math.floor((placed[type] || 0) / qty)));
+  }
+
   function place() {
     const h = G.held;
     if (!h) return;
-    if (!h.ok) { toast('Se traslapa o se sale del rollo'); return; }
+    if (!h.ok) { sfx('bad'); toast('Se traslapa o se sale del rollo'); return; }
     startClock();
-    G.board.place(G.pieces[h.id], h.rot, h.x, h.y);
+    const piece = G.pieces[h.id];
+    G.board.place(piece, h.rot, h.x, h.y);
     G.placements.push({ id: h.id, rot: h.rot, x: h.x, y: h.y });
+    G.flash = { id: h.id, rot: h.rot, x: h.x, y: h.y, t0: performance.now() };
     const at = { x: h.x, y: h.y };
     G.held = null;
     ensureRoom();
-    if (G.queue.length) spawn(G.queue.shift());
+
+    const { type, size } = piece.data;
+    const done = shirtsDone(size);
+    if (done > (G.shirtsDone[size] || 0)) {
+      const of = counts[size];
+      const r = canvas.getBoundingClientRect();
+      shout(`¡PLAYERA ${size}!`, {
+        kind: 'pop', size: 16, dur: 1300, sub: of > 1 ? `lista · ${done} de ${of}` : 'lista',
+        x: r.left + view.ox + (at.x + piece.w / 2) * view.s, y: r.top + view.oy + (at.y + piece.h / 2) * view.s,
+      });
+      sfx('shirt');
+    } else {
+      sfx('place');
+    }
+    G.shirtsDone[size] = done;
+
+    if (G.queue.length) {
+      const next = G.queue.findIndex((id) => {
+        const data = G.pieces[id].data;
+        return data.type === type && data.size === size;
+      });
+      spawn(G.queue.splice(next < 0 ? 0 : next, 1)[0]);
+    }
     if (G.held) {
       if (pointer) followPointer();
       else setHeld(cutLength() + GAP + 6, at.y, true);
@@ -173,7 +418,7 @@
   function hardDrop() {
     const h = G.held;
     if (!h) return;
-    if (h.ghost === null) { toast('Primero mueve la pieza a un lugar libre'); return; }
+    if (h.ghost === null) { sfx('bad'); toast('Primero mueve la pieza a un lugar libre'); return; }
     h.x = h.ghost;
     h.ok = true;
     place();
@@ -184,6 +429,7 @@
     if (!h) return;
     const rs = G.pieces[h.id].rotations;
     h.rot = rs[(rs.indexOf(h.rot) + 1) % rs.length];
+    sfx('rotate');
     setHeld(h.x, h.y, true);
   }
 
@@ -192,6 +438,7 @@
     if (!h || !G.queue.length) return;
     G.queue.push(h.id);
     spawn(G.queue.shift(), { x: h.x, y: h.y });
+    sfx('select');
     updateSide();
   }
 
@@ -201,6 +448,7 @@
     const id = G.queue[i];
     if (h) G.queue[i] = h.id; else G.queue.splice(i, 1);
     spawn(id, h ? { x: h.x, y: h.y } : null);
+    sfx('select');
     updateSide();
   }
 
@@ -214,6 +462,7 @@
     G.placements.splice(k, 1);
     if (G.held) G.queue.unshift(G.held.id);
     G.held = { id, rot: pl.rot, x: pl.x, y: pl.y, ok: false, ghost: null };
+    sfx('pick');
     setHeld(pl.x, pl.y, true);
     updateSide();
   }
@@ -226,10 +475,14 @@
   function ensureRoom(extra = 0) {
     const need = cutLength() + extra + 110;
     if (need <= G.L) return;
-    G.L = Math.ceil(need + 40);
+    growBoard(Math.ceil(need + 40));
+    resize();
+  }
+
+  function growBoard(L) {
+    G.L = L;
     G.board = G.P.board(G.L);
     for (const p of G.placements) G.board.place(G.pieces[p.id], p.rot, p.x, p.y);
-    resize();
   }
 
   /** Lay out every piece not yet placed in shelves after the cut line. */
@@ -246,6 +499,7 @@
     }
     G.held = null;
     G.queue = [];
+    sfx('place');
     updateSide();
     requestRender();
     if (check) checkDone();
@@ -258,6 +512,8 @@
     const ids = [...(G.held ? [G.held.id] : []), ...G.queue];
     G.autoIds = new Set(ids);
     if (ids.length) fillShelves(false);
+    sfx('timeUp');
+    shout('¡TIEMPO!', { kind: 'big', color: COL.orange, dur: 1100 });
     startReview();
   }
 
@@ -272,7 +528,9 @@
     const token = ++G.token;
     G.elapsed = G.t0 === null ? 0 : performance.now() - G.t0;
     G.human = G.S.evaluate(G.placements.map(toJob));
+    G.lastCount = null;
     $('sTime').textContent = fmtClock(Math.max(0, TURN_MS - G.elapsed));
+    $('sTime').classList.toggle('low', false);
     if (G.timeUp) {
       const n = G.autoIds.size;
       setHeading('¡Se acabó el tiempo!', n
@@ -280,10 +538,11 @@
         : `Tu tendido: ${G.human.length} cm de rollo.`);
     } else {
       setHeading(`Tu tendido: ${G.human.length} cm de rollo`, 'Ahora TelaTetris reacomoda tus mismas piezas.');
+      shout('¡COMPLETO!', { kind: 'big', dur: 900 });
     }
     $('keys').style.visibility = 'hidden';
     updateSide();
-    requestRender();
+    resize();
 
     const t0 = performance.now();
     G.reviewT0 = t0;
@@ -308,6 +567,10 @@
 
   function updateCountdown(e) {
     const left = Math.max(1, Math.ceil((REVIEW_MS - e) / 1000));
+    if (left !== G.lastCount) {
+      if (G.lastCount !== null) sfx('count');
+      G.lastCount = left;
+    }
     $('bFinish').textContent = `TelaTetris empieza en ${left}…`;
   }
 
@@ -316,9 +579,9 @@
     G.phase = 'play';
     G.searching = false;
     G.S.reset();
-    setHeading('Tu turno: acomoda el pedido', 'Gana el tendido que use menos rollo.');
+    setHeading(PLAY_TITLE, PLAY_SUB);
     $('keys').style.visibility = '';
-    requestRender();
+    resize();
   }
 
   // ------------------------------------- move: the algorithm rearranges ---
@@ -333,8 +596,12 @@
     G.stagger = Math.min(120, (MOVE_TOTAL_MS - MOVE_MS) / Math.max(1, G.final.length - 1));
     G.moveDur = (G.final.length - 1) * G.stagger + MOVE_MS;
     G.moveT0 = performance.now();
+    G.flown = -1;
     showPanel('solve');
-    $('solveIters').textContent = G.result.stats.iterations;
+    setStep(4);
+    sfx('go');
+    shout('TURNO DE TELATETRIS', { color: COL.text, sub: 'Mismas piezas, mismo hilo, misma separación.', dur: 1500 });
+    $('solveIters').textContent = G.result.stats.iterations.toLocaleString('en-US');
     $('solveHuman').textContent = `${G.human.length} cm`;
     $('solveBest').textContent = `${G.result.length} cm`;
     setHeading('TelaTetris reacomoda tus piezas', 'Mismas piezas, mismo hilo, misma separación de corte.');
@@ -343,6 +610,8 @@
     const anim = () => {
       if (!G || G.phase !== 'move') return;
       const t = performance.now() - G.moveT0;
+      const k = Math.min(G.final.length - 1, Math.floor(t / G.stagger));
+      while (G.flown < k) sfx('fly', ++G.flown);
       $('solveBar').style.width = `${Math.min(100, (t / G.moveDur) * 100).toFixed(1)}%`;
       requestRender();
       if (t < G.moveDur + 300) requestAnimationFrame(anim);
@@ -373,6 +642,8 @@
 
   // ---------------------------------------------------------- result ---
 
+  const SHIRT_SVG = '<svg viewBox="0 0 11 9" shape-rendering="crispEdges" aria-hidden="true"><g fill="#1C1C1B"><rect x="2" width="3" height="1"/><rect x="6" width="3" height="1"/><rect x="1" y="1" width="9" height="1"/><rect y="2" width="11" height="2"/><rect y="4" width="2" height="1"/><rect x="3" y="4" width="5" height="5"/><rect x="9" y="4" width="2" height="1"/></g><rect x="6" y="5" width="1" height="1" fill="#F95300"/></svg>';
+
   function showResults() {
     G.phase = 'result';
     G.algo = G.result;
@@ -380,52 +651,51 @@
     const human = G.human;
     const saved = human.length - G.algo.length;
     const pct = human.length ? (saved / human.length) * 100 : 0;
+    const shirts = totalShirts();
 
     const card = $('savedCard');
     card.classList.toggle('lose', saved < 0);
     if (saved > 0) {
+      // Fabric saved over 1,000 identical spreads, in T-shirts at TelaTetris's roll per shirt.
+      const extra = Math.floor((saved * 1000 * shirts) / G.algo.length);
       card.innerHTML = `
         <div class="k">Rollo ahorrado</div>
         <div class="big" id="cntCm">0<small>cm</small></div>
         <div class="pct" id="cntPct">0%</div>
-        <div class="note">En 1,000 tendidos iguales: ${fmt(saved * 10)} m de tela.</div>
-        <span class="badge">MEDIDO EN VIVO</span>`;
+        <div class="note">En 1,000 tendidos iguales: <b>${fmt(saved * 10)} m</b> de tela.</div>
+        <div class="shirts">${SHIRT_SVG}<span><strong>+${fmt(extra)}</strong>playeras más con la misma tela</span></div>`;
       countUp($('cntCm'), saved, (v) => `${Math.round(v)}<small>cm</small>`);
-      countUp($('cntPct'), pct, (v) => `${v.toFixed(1)}%`);
+      countUp($('cntPct'), pct, (v) => `${v.toFixed(1)}% menos rollo`);
+      sfx('win');
+      shout('¡AHORRO!', { kind: 'big', burst: true, dur: 1200 });
     } else if (saved === 0) {
       card.innerHTML = `
         <div class="k">Empate</div>
         <div class="big">0<small>cm</small></div>
-        <div class="note">Tu tendido mide lo mismo que el de TelaTetris. Muy bien.</div>
-        <span class="badge">MEDIDO EN VIVO</span>`;
+        <div class="note">Tu tendido mide lo mismo que el de TelaTetris. Muy bien.</div>`;
+      sfx('win');
+      shout('¡EMPATE!', { kind: 'big', dur: 1100 });
     } else {
       card.innerHTML = `
         <div class="k">Le ganaste a TelaTetris</div>
         <div class="big">${-saved}<small>cm</small></div>
         <div class="pct">${(-pct).toFixed(1)}% menos rollo</div>
-        <div class="note">Buen ojo. Así medimos el ahorro: contra el mejor tendido, no contra el peor.</div>
-        <span class="badge">MEDIDO EN VIVO</span>`;
+        <div class="note">Buen ojo. Así medimos el ahorro: contra el mejor tendido, no contra el peor.</div>`;
+      sfx('lose');
+      shout('¡GANASTE!', { kind: 'big', burst: true, color: COL.orange, dur: 1200 });
     }
 
     const shown = Math.min(G.elapsed, TURN_MS);
     const mins = Math.floor(shown / 60000), secs = Math.floor((shown % 60000) / 1000);
     $('cmpTable').innerHTML = `
       <tr><th></th><th>Rollo</th><th>Aprovecha</th></tr>
-      <tr class="me"><td>Tú <span style="color:var(--muted)">(${mins}:${String(secs).padStart(2, '0')}${G.timeUp && G.autoIds.size ? ` · ${G.autoIds.size} por estantes` : ''})</span></td><td>${human.length} cm</td><td>${pc(human.utilization)}</td></tr>
+      <tr class="me"><td>Tú <span>(${mins}:${String(secs).padStart(2, '0')}${G.timeUp && G.autoIds.size ? ` · ${G.autoIds.size} por estantes` : ''})</span></td><td>${human.length} cm</td><td>${pc(human.utilization)}</td></tr>
       <tr class="tt"><td>TelaTetris</td><td>${G.algo.length} cm</td><td>${pc(G.algo.utilization)}</td></tr>
       <tr class="ref"><td>Por estantes</td><td>${shelf.length} cm</td><td>${pc(shelf.utilization)}</td></tr>`;
 
-    const vh = G.human.check;
-    const va = G.algo.check;
-    const mark = (b) => `<span class="${b ? 'ok' : 'bad'}">${b ? '✓' : '✕'}</span>`;
-    $('checks').innerHTML = `
-      <span></span><span class="h">Tú</span><span class="h">TelaTetris</span>
-      <span>Sin traslapes</span>${mark(vh.inBounds && vh.noOverlap)}${mark(va.inBounds && va.noOverlap)}
-      <span>Hilo respetado</span>${mark(vh.rotations)}${mark(va.rotations)}
-      <span>Piezas completas</span>${mark(vh.complete)}${mark(va.complete)}`;
-
     showPanel('result');
-    setHeading(saved > 0 ? 'El mismo pedido, menos tela.' : 'El mismo pedido.',
+    setStep(5);
+    setHeading(saved > 0 ? 'Las mismas playeras, menos tela.' : 'Las mismas playeras.',
       `Tú: ${human.length} cm · TelaTetris: ${G.algo.length} cm`);
     requestRender();
   }
@@ -439,34 +709,89 @@
     if (which === 'solve') $('solveBar').style.width = '0%';
   }
 
+  function div(className, text) {
+    const el = document.createElement('div');
+    el.className = className;
+    if (text !== undefined) el.textContent = text;
+    el.setAttribute('aria-hidden', 'true');
+    return el;
+  }
+
   function updateSide() {
     if (!G || (G.phase !== 'play' && G.phase !== 'review')) return;
     const q = $('queue');
     q.innerHTML = '';
-    const show = G.queue.slice(0, 5);
-    show.forEach((id, i) => {
-      const b = document.createElement('button');
-      b.title = `${G.pieces[id].data.name} ${G.pieces[id].data.size}`;
-      if (i === 0) b.className = 'first';
-      const c = document.createElement('canvas');
-      b.appendChild(c);
-      b.onclick = () => selectFromQueue(i);
-      q.appendChild(b);
-      requestAnimationFrame(() => drawMini(c, G.pieces[id]));
-    });
-    if (G.queue.length > 5) {
-      const more = document.createElement('button');
-      more.className = 'more';
-      more.textContent = `+${G.queue.length - 5}`;
-      more.tabIndex = -1;
-      q.appendChild(more);
+    tileEls.clear();
+    const pending = new Set(G.queue);
+    if (G.held) pending.add(G.held.id);
+
+    // Pieces still to place, by size and type: they drive the order card's shirts.
+    const left = {};
+    for (const id of pending) {
+      const d = G.pieces[id].data;
+      left[d.size] = left[d.size] || {};
+      left[d.size][d.type] = (left[d.size][d.type] || 0) + 1;
     }
-    if (!G.queue.length) {
+
+    // Matrix: one row per size, one column per pattern piece.
+    if (pending.size) {
+      q.appendChild(div('qhead', ''));
+      for (const [type] of Garments.GARMENT) q.appendChild(div('qhead', TYPES[type].name));
+    }
+    let rowSize = null;
+    for (const { piece, ids } of G.groups.values()) {
+      if (!pending.size) break;
+      if (piece.data.size !== rowSize) {
+        rowSize = piece.data.size;
+        q.appendChild(div('qrow', rowSize));
+      }
+      const remaining = ids.filter((id) => pending.has(id)).length;
+      const active = G.held !== null && ids.includes(G.held.id);
+      const b = document.createElement('button');
+      const key = `${piece.data.type}-${piece.data.size}`;
+      tileEls.set(key, b);
+      if (intro) b.className = tileHidden(key) ? 'out' : 'in';
+      const label = `${piece.data.name} · ${piece.data.size}`;
+      b.title = `${label}: ${remaining} ${remaining === 1 ? 'pieza restante' : 'piezas restantes'}`;
+      b.setAttribute('aria-label', b.title);
+      b.setAttribute('aria-pressed', String(active));
+      b.disabled = remaining === 0;
+      const c = document.createElement('canvas');
+      c.setAttribute('aria-hidden', 'true');
+      b.appendChild(c);
+      const count = document.createElement('span');
+      count.className = 'queue-count';
+      count.textContent = `×${remaining}`;
+      b.appendChild(count);
+      const name = document.createElement('span');
+      name.className = 'sr';
+      name.textContent = label;
+      b.appendChild(name);
+      b.onclick = () => {
+        if (active) return;
+        const i = G.queue.findIndex((id) => ids.includes(id));
+        if (i >= 0) selectFromQueue(i);
+      };
+      q.appendChild(b);
+      requestAnimationFrame(() => drawMini(c, piece));
+    }
+    if (!pending.size) {
       const e = document.createElement('div');
       e.className = 'queue-empty';
-      e.textContent = G.held ? 'Última pieza en la mano.' : 'Todas las piezas están en el rollo.';
+      e.textContent = 'Todas las piezas están en el rollo.';
       q.appendChild(e);
     }
+
+    let done = 0;
+    for (const size of Object.keys(Garments.SIZE_SCALE)) {
+      if (!counts[size]) continue;
+      G.shirtsDone[size] = shirtsDone(size);
+      done += G.shirtsDone[size];
+    }
+    const total = totalShirts();
+    $('orderMeta').innerHTML = `<b>${done}/${total}</b> playeras completas en el rollo · ${G.pieces.length} piezas · rollo ${ROLL_W} cm`;
+    requestAnimationFrame(() => drawShirtIcons(left));
+
     const n = G.pieces.length, placed = G.placements.length;
     $('sPieces').textContent = `${placed}/${n}`;
     const m = G.P.metrics(G.placements);
@@ -478,6 +803,27 @@
     const reviewing = G.phase === 'review';
     $('bFinish').hidden = !reviewing;
     if (reviewing) updateCountdown(0);
+  }
+
+  /** Each size's shirt keeps the pieces still waiting; placed ones turn to outlines. */
+  function drawShirtIcons(left) {
+    for (const size of Object.keys(Garments.SIZE_SCALE)) {
+      const c = shirtIcons[size];
+      if (!c || !c.getContext) continue;
+      const dpr = window.devicePixelRatio || 1;
+      const w = c.clientWidth || 70, h = c.clientHeight || 40;
+      c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+      const g = c.getContext('2d');
+      if (!g || !g.setTransform) continue;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, w, h);
+      // Fit the largest size, so S looks smaller than XL.
+      const s = Math.min((w - 6) / (94 * 1.16), (h - 4) / (74 * 1.16));
+      const sc = Garments.SIZE_SCALE[size];
+      const rem = (left[size]) || {};
+      drawShirt(g, w / 2, h / 2 + 1, s, sc, (part) =>
+        (counts[size] && (rem[part.type] || 0) >= part.k ? 'fill' : 'empty'), 1);
+    }
   }
 
   function fmtClock(ms) {
@@ -492,19 +838,21 @@
     el.textContent = fmtClock(left);
     el.classList.toggle('low', left <= 15000);
     if (G.t0 === null) return;
-    if (left <= 10000 && !G.warned) { G.warned = true; toast('¡Quedan 10 segundos!'); }
+    const sec = Math.ceil(left / 1000);
+    if (sec <= 10 && sec > 0 && sec !== G.lastTick) { G.lastTick = sec; sfx('tick'); }
+    if (left <= 10000 && !G.warned) { G.warned = true; shout('¡10 SEGUNDOS!', { color: COL.orange, dur: 1100 }); }
     if (left <= 0) timeUp();
   }
   setInterval(tickClock, 200);
 
   function drawMini(c, piece) {
     const dpr = window.devicePixelRatio || 1;
-    const w = c.clientWidth || 90, h = c.clientHeight || 72;
+    const w = c.clientWidth || 50, h = c.clientHeight || 36;
     c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
     const g = c.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const s = Math.min((w - 14) / piece.w, (h - 14) / piece.h, 1.6);
-    drawPiece(g, piece, 0, (w - piece.w * s) / 2, (h - piece.h * s) / 2, s, {});
+    const s = Math.min((w - 8) / piece.w, (h - 8) / piece.h, 1.2);
+    drawPiece(g, piece, 0, (w - piece.w * s) / 2, (h - piece.h * s) / 2 + 2, s, { noLabel: true, thin: true });
   }
 
   // ---------------------------------------------------------- render ---
@@ -515,32 +863,51 @@
     requestAnimationFrame(() => { renderQueued = false; render(); });
   }
 
-  const PAD = 12, LABEL_H = 28, RULER_H = 22;
+  const PAD = 14, LABEL_H = 30, RULER_H = 24;
+
+  // Laptop screens: the board fills the space the layout leaves it.
+  // Narrow screens: the board's height follows its width and the page scrolls.
+  function fitMode() {
+    return !!(window.matchMedia && window.matchMedia('(min-width: 981px) and (min-height: 560px)').matches);
+  }
 
   function resize() {
     const wrap = $('canvasWrap');
-    const cssW = wrap.clientWidth;
-    const showL = displayLength();
-    const maxH = Math.max(260, window.innerHeight - wrap.getBoundingClientRect().top - 70);
-    const fitH = (maxH - LABEL_H - RULER_H) / ROLL_W;
-    const s = Math.max(0.6, Math.min((cssW - 2 * PAD) / showL, fitH));
-    const cssH = Math.ceil(LABEL_H + ROLL_W * s + RULER_H + 4);
+    const cssW = wrap.clientWidth || 900;
+    const labelH = cssW < 600 ? LABEL_H + 16 : LABEL_H;
+    let showL = displayLength();
+    let cssH, s;
+    if (fitMode()) {
+      cssH = Math.max(220, wrap.clientHeight || 420);
+      s = Math.max(0.6, Math.min((cssW - 2 * PAD) / showL, (cssH - labelH - RULER_H - 6) / ROLL_W));
+      canvas.style.height = '';
+    } else {
+      const maxH = Math.max(280, (window.innerHeight || 800) * 0.6);
+      s = Math.max(0.6, Math.min((cssW - 2 * PAD) / showL, (maxH - labelH - RULER_H - 6) / ROLL_W));
+      cssH = Math.ceil(labelH + ROLL_W * s + RULER_H + 6);
+      canvas.style.height = `${cssH}px`;
+    }
+    // Show the whole frame's worth of roll; while playing, all of it is usable.
+    showL = Math.max(showL, Math.floor((cssW - 2 * PAD) / s));
+    if (G && G.phase === 'play' && showL > G.L) growBoard(showL);
+    const oy = Math.round(labelH + Math.max(0, (cssH - labelH - RULER_H - 6 - ROLL_W * s) / 2));
     const dpr = window.devicePixelRatio || 1;
-    canvas.style.height = `${cssH}px`;
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
-    view = { cssW, cssH, s, dpr, ox: PAD, oy: LABEL_H, showL };
+    view = { cssW, cssH, s, dpr, ox: PAD, oy, showL };
+    fxResize();
     hatch = null;
     requestRender();
   }
 
-  // The same roll stays on screen from play to result; it only grows if a
-  // layout would not fit.
+  // The roll on screen: the playable length while placing, then just enough
+  // to frame the player's layout and TelaTetris's.
   function displayLength() {
     if (!G) return 300;
-    let L = G.L;
-    if (G.phase !== 'play') L = Math.max(L, cutLength() + 25);
-    if (G.final) L = Math.max(L, G.P.layoutLength(G.final) + 25);
+    if (G.phase === 'play') return G.L;
+    // After play, frame both layouts instead of the spare roll left for placing.
+    let L = cutLength() + 30;
+    if (G.final) L = Math.max(L, G.P.layoutLength(G.final) + 30);
     return L;
   }
 
@@ -571,7 +938,8 @@
     if (G.phase === 'play') {
       drawRoll(g, ox, oy, s, showL, cutLength());
       for (const p of G.placements) drawPiece(g, G.pieces[p.id], p.rot, ox + p.x * s, oy + p.y * s, s, {});
-      drawHeld(g, ox, oy, s);
+      drawFlash(g, ox, oy, s);
+      if (!intro) drawHeld(g, ox, oy, s);
       drawCut(g, ox, oy, s, cutLength(), COL.orange, `${cutLength()} cm`, 'right');
       drawRuler(g, ox, oy, s, showL);
       return;
@@ -602,8 +970,8 @@
     const humanLen = G.human.length;
     const done = G.phase === 'result';
     if (done) {
-      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.lime, 'rollo ahorrado');
-      else if (G.algo.length > humanLen) box(g, ox, oy, s, { from: humanLen, to: G.algo.length }, COL.orange, 'ventaja tuya');
+      if (G.algo.length < humanLen) box(g, ox, oy, s, { from: G.algo.length, to: humanLen }, COL.yellow, 'ROLLO AHORRADO');
+      else if (G.algo.length > humanLen) box(g, ox, oy, s, { from: humanLen, to: G.algo.length }, COL.orange, 'VENTAJA TUYA');
     }
 
     const order = { waiting: 0, done: 1, moving: 2 };
@@ -624,9 +992,9 @@
       }
     });
 
-    drawCut(g, ox, oy, s, humanLen, done ? COL.orange : 'rgba(255,90,0,0.6)', `Tu corte · ${humanLen} cm`, 'right');
+    drawCut(g, ox, oy, s, humanLen, done ? COL.orange : 'rgba(249,83,0,0.6)', `Tu corte · ${humanLen} cm`, 'right', view.cssW < 600 ? 1 : 0);
     if (extent < humanLen - 2 || done) {
-      drawCut(g, ox, oy, s, extent, COL.lime, `TelaTetris · ${extent} cm`, 'left');
+      drawCut(g, ox, oy, s, extent, COL.yellow, `TelaTetris · ${extent} cm`, 'left');
     }
     drawRuler(g, ox, oy, s, showL);
   }
@@ -635,17 +1003,25 @@
     const W = ROLL_W * s, len = L * s;
     g.fillStyle = COL.roll;
     g.fillRect(ox, oy, len, W);
+    // 50 cm guides, then a dot every 10 cm (the Labs dot grid).
+    g.fillStyle = COL.line50;
+    for (let x = 50; x < L; x += 50) g.fillRect(Math.round(ox + x * s), oy, 1, W);
+    for (let y = 50; y < ROLL_W; y += 50) g.fillRect(ox, Math.round(oy + y * s), len, 1);
     for (let x = 10; x < L; x += 10) {
-      g.fillStyle = x % 50 === 0 ? COL.grid50 : COL.grid;
-      g.fillRect(ox + x * s, oy, 1, W);
+      for (let y = 10; y < ROLL_W; y += 10) {
+        const big = x % 50 === 0 && y % 50 === 0;
+        const d = big ? 3 : 2;
+        g.fillStyle = big ? COL.dot50 : COL.dot;
+        g.fillRect(Math.round(ox + x * s - d / 2), Math.round(oy + y * s - d / 2), d, d);
+      }
     }
     if (cut > 0) {
       g.fillStyle = hatchPattern(g);
       g.fillRect(ox, oy, cut * s, W);
     }
     g.fillStyle = COL.edge;
-    g.fillRect(ox, oy - 1, len, 1);
-    g.fillRect(ox, oy + W, len, 1);
+    g.fillRect(ox, oy - 2, len, 2);
+    g.fillRect(ox, oy + W, len, 2);
   }
 
   function drawHeld(g, ox, oy, s) {
@@ -658,7 +1034,23 @@
     drawPiece(g, piece, h.rot, ox + h.x * s, oy + h.y * s, s, { held: true, bad: !h.ok });
   }
 
-  function drawCut(g, ox, oy, s, at, color, label, side) {
+  /** A white lock flash on the piece that was just placed. */
+  function drawFlash(g, ox, oy, s) {
+    const f = G.flash;
+    if (!f) return;
+    const p = (performance.now() - f.t0) / 260;
+    if (p >= 1 || reducedMotion) { G.flash = null; return; }
+    const v = variant(f.id, f.rot);
+    tracePoly(g, v.poly, ox + f.x * s, oy + f.y * s, s);
+    g.fillStyle = `rgba(255,255,255,${0.55 * (1 - p)})`;
+    g.fill();
+    g.strokeStyle = `rgba(255,255,255,${1 - p})`;
+    g.lineWidth = 3;
+    g.stroke();
+    requestRender();
+  }
+
+  function drawCut(g, ox, oy, s, at, color, label, side, row = 0) {
     if (at <= 0) return;
     const W = ROLL_W * s;
     const x = ox + at * s + 0.5;
@@ -672,78 +1064,77 @@
     const right = ox + view.showL * s;
     let tx = side === 'left' ? x - 6 - tw : x + 6;
     tx = Math.max(ox, Math.min(right - tw, tx));
-    g.fillText(label, tx, oy - 9);
+    g.fillText(label, tx, oy - 9 - row * 16);
   }
 
   function drawRuler(g, ox, oy, s, L) {
     const W = ROLL_W * s;
-    g.fillStyle = COL.muted;
+    g.fillStyle = COL.dim;
     g.font = `500 11px ${FONT}`;
     g.textBaseline = 'top';
     for (let x = 0; x <= L; x += 10) {
       const major = x % 50 === 0;
-      g.fillRect(ox + x * s, oy + W + 2, 1, major ? 7 : 4);
-      if (major && x > 0 && x < L - 22) g.fillText(String(x), ox + x * s - 8, oy + W + 10);
+      g.fillRect(Math.round(ox + x * s), oy + W + 3, 1, major ? 7 : 4);
+      if (major && x > 0 && x < L - 22) g.fillText(String(x), ox + x * s - 8, oy + W + 11);
     }
-    g.fillText('cm', ox + L * s - 16, oy + W + 10);
+    g.fillText('cm', ox + L * s - 16, oy + W + 11);
   }
 
-  /** "You used X cm" card over the empty part of the roll. */
+  /** "You used X cm" slab over the empty part of the roll. */
   function drawBanner(g, ox, oy, s, L) {
     const h = G.human;
     const W = ROLL_W * s;
     const freeFrom = ox + h.length * s, freeTo = ox + L * s;
-    const bw = Math.max(220, Math.min(320, freeTo - freeFrom - 16));
-    const bh = Math.min(W - 8, 172);
-    const cx = Math.min(freeTo - bw / 2 - 6, Math.max((freeFrom + freeTo) / 2, ox + bw / 2));
-    const x = cx - bw / 2, y = oy + (W - bh) / 2;
-    g.fillStyle = 'rgba(22,22,22,0.94)';
-    g.strokeStyle = '#4a4a4a'; g.lineWidth = 1;
-    g.beginPath();
-    if (g.roundRect) g.roundRect(x, y, bw, bh, 14); else g.rect(x, y, bw, bh);
-    g.fill(); g.stroke();
+    const bw = Math.max(250, Math.min(340, freeTo - freeFrom - 30));
+    const bh = Math.min(W - 16, 184);
+    const roomy = freeTo - freeFrom >= bw + 24;
+    const cx = roomy ? (freeFrom + freeTo) / 2 : ox + (L * s) / 2;
+    const x = Math.round(cx - bw / 2), y = Math.round(oy + (W - bh) / 2);
+    const k = bh / 184;
+    g.fillStyle = COL.black;
+    g.fillRect(x + 6, y + 6, bw, bh);
+    g.fillStyle = COL.orange;
+    g.fillRect(x, y, bw, bh);
 
     g.textAlign = 'center';
     g.textBaseline = 'alphabetic';
-    g.fillStyle = COL.muted;
-    g.font = `700 12px ${FONT}`;
-    const k = bh / 172;
-    if (G.timeUp) g.fillStyle = COL.orange;
+    g.fillStyle = COL.black;
+    g.font = `400 9px ${PIX}`;
     g.fillText(G.timeUp ? '¡SE ACABÓ EL TIEMPO!' : 'TU TENDIDO', cx, y + 28 * k);
-    g.fillStyle = COL.orange;
-    g.font = `800 ${Math.round(44 * k)}px ${FONT}`;
+    g.font = `400 ${Math.round(30 * k)}px ${PIX}`;
     g.fillText(`${h.length} cm`, cx, y + 76 * k);
-    g.fillStyle = COL.text;
-    g.font = `600 14px ${FONT}`;
-    g.fillText(`${pc(h.utilization)} aprovechado`, cx, y + 104 * k);
-    g.fillStyle = COL.muted;
-    g.font = `500 13px ${FONT}`;
+    g.font = `700 14px ${FONT}`;
+    g.fillText(`${pc(h.utilization)} de la tela aprovechada`, cx, y + 104 * k);
+    g.font = `600 12px ${FONT}`;
     const n = G.timeUp ? G.autoIds.size : 0;
-    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(1 - h.utilization)} desperdicio`, cx, y + 124 * k);
+    g.fillText(n ? `${n} ${n === 1 ? 'pieza' : 'piezas'} por estantes` : `${pc(1 - h.utilization)} se va a desperdicio`, cx, y + 124 * k);
     // countdown bar
     const p = G.reviewT0 ? Math.min(1, (performance.now() - G.reviewT0) / REVIEW_MS) : 0;
-    g.fillStyle = '#333';
-    g.fillRect(x + 24, y + bh - 26, bw - 48, 5);
-    g.fillStyle = COL.lime;
-    g.fillRect(x + 24, y + bh - 26, (bw - 48) * p, 5);
+    g.fillStyle = 'rgba(28,28,27,0.25)';
+    g.fillRect(x + 24, y + bh - 40 * k, bw - 48, 8);
+    g.fillStyle = COL.black;
+    g.fillRect(x + 24, y + bh - 40 * k, Math.round((bw - 48) * p / 0.125) * 0.125, 8);
+    g.font = `400 8px ${PIX}`;
+    g.fillText(`TELATETRIS EN ${Math.max(1, Math.ceil(REVIEW_MS * (1 - p) / 1000))}`, cx, y + bh - 14 * k);
     g.textAlign = 'left';
   }
 
   function box(g, ox, oy, s, r, color, label) {
     const x = ox + r.from * s, w = (r.to - r.from) * s, H = ROLL_W * s;
-    g.fillStyle = color === COL.lime ? 'rgba(233,251,90,0.13)' : 'rgba(255,90,0,0.15)';
+    g.fillStyle = color === COL.yellow ? 'rgba(232,251,91,0.14)' : 'rgba(249,83,0,0.16)';
     g.fillRect(x, oy, w, H);
     g.strokeStyle = color; g.lineWidth = 2; g.setLineDash([7, 5]);
     g.strokeRect(x + 1, oy + 1, w - 2, H - 2);
     g.setLineDash([]);
-    if (w > 60) {
+    if (w > 70) {
       g.fillStyle = color;
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.font = `800 ${Math.min(30, Math.max(12, w / 6))}px ${FONT}`;
+      const big = Math.round(Math.min(24, Math.max(10, w / 7)));
+      g.font = `400 ${big}px ${PIX}`;
       g.fillText(`${r.to - r.from} cm`, x + w / 2, oy + H / 2 - 12);
-      g.font = `600 13px ${FONT}`;
-      g.fillText(label, x + w / 2, oy + H / 2 + 14);
+      g.font = `400 8px ${PIX}`;
+      g.fillText(label, x + w / 2, oy + H / 2 + big / 2 + 8);
       g.textAlign = 'left';
     }
   }
@@ -759,27 +1150,50 @@
     g.restore();
   }
 
+  function tracePoly(g, poly, px, py, s) {
+    g.beginPath();
+    poly.forEach(([x, y], i) => (i ? g.lineTo(px + x * s, py + y * s) : g.moveTo(px + x * s, py + y * s)));
+    g.closePath();
+  }
+
   function drawPiece(g, piece, rot, px, py, s, o) {
     const v = Arrange.variantOf(piece, rot);
-    g.beginPath();
-    v.poly.forEach(([x, y], i) => (i ? g.lineTo(px + x * s, py + y * s) : g.moveTo(px + x * s, py + y * s)));
-    g.closePath();
     if (o.ghost) {
+      tracePoly(g, v.poly, px, py, s);
       g.setLineDash([4, 4]);
-      g.strokeStyle = 'rgba(242,242,238,0.55)';
+      g.strokeStyle = 'rgba(255,255,255,0.55)';
       g.lineWidth = 1.5;
       g.stroke();
       g.setLineDash([]);
       return;
     }
+    if (o.bad) {
+      tracePoly(g, v.poly, px, py, s);
+      g.fillStyle = 'rgba(28,28,27,0.82)';
+      g.fill();
+      g.strokeStyle = COL.orange; g.lineWidth = 3; g.setLineDash([5, 4]);
+      g.stroke();
+      g.setLineDash([]);
+      // ✕ in the middle
+      const cx = px + (piece.w * s) / 2, cy = py + (piece.h * s) / 2, r = Math.min(10, piece.w * s / 4, piece.h * s / 4);
+      g.beginPath(); g.moveTo(cx - r, cy - r); g.lineTo(cx + r, cy + r); g.moveTo(cx + r, cy - r); g.lineTo(cx - r, cy + r);
+      g.stroke();
+      return;
+    }
+    if (o.held) {
+      tracePoly(g, v.poly, px + 5, py + 5, s);
+      g.fillStyle = 'rgba(0,0,0,0.45)';
+      g.fill();
+    }
+    tracePoly(g, v.poly, px, py, s);
     const a = g.globalAlpha;
-    g.fillStyle = o.bad ? COL.orange : piece.data.color;
-    if (o.held) g.globalAlpha = a * (o.bad ? 0.75 : 0.92);
+    g.fillStyle = piece.data.color;
+    if (o.held) g.globalAlpha = a * 0.94;
     g.fill();
     g.globalAlpha = a;
     g.shadowColor = 'transparent';
-    g.strokeStyle = (o.held && !o.bad) || o.lifted ? '#ffffff' : COL.ink;
-    g.lineWidth = o.held || o.lifted ? 2 : 1.25;
+    g.strokeStyle = o.held || o.lifted ? '#ffffff' : COL.ink;
+    g.lineWidth = o.thin ? 1.25 : 2;
     g.stroke();
 
     // grain line: double arrow along x
@@ -789,7 +1203,7 @@
       const cy = py + (piece.h * s) / 2;
       const half = Math.min(piece.w * 0.22, 14) * s;
       const hs = Math.max(3, Math.min(6, s * 2));
-      g.strokeStyle = '#3d3d32'; g.fillStyle = '#3d3d32'; g.lineWidth = Math.max(1, Math.min(1.6, s * 0.6));
+      g.strokeStyle = COL.olive; g.fillStyle = COL.olive; g.lineWidth = Math.max(1, Math.min(1.6, s * 0.6));
       g.beginPath(); g.moveTo(cx - half, cy); g.lineTo(cx + half, cy); g.stroke();
       g.beginPath();
       g.moveTo(cx - half, cy); g.lineTo(cx - half + hs * 1.4, cy - hs); g.lineTo(cx - half + hs * 1.4, cy + hs); g.closePath();
@@ -802,6 +1216,349 @@
         g.textAlign = 'left';
       }
     }
+  }
+
+  // -------------------------------------------------------- announcer ---
+  // Fighting-game call-outs on a full-screen overlay: words slam in large,
+  // shake on impact and slide away. Kinds: 'caption' (on a slanted band over
+  // the stage), 'big' (centre of the stage), 'pop' (small, at a point).
+
+  const fxCanvas = $('fx');
+  const fxg = fxCanvas && fxCanvas.getContext ? fxCanvas.getContext('2d') : null;
+  let fxView = { w: 0, h: 0, dpr: 1 };
+  let fxRunning = false;
+  const shouts = [];
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  const easeBack = (t) => { const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+  const SHADE = { [COL.yellow]: '#a9bb22', [COL.orange]: '#b33b00', [COL.text]: '#bdbdb8' };
+
+  function fxResize() {
+    if (!fxCanvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth || 0, h = window.innerHeight || 0;
+    fxCanvas.width = Math.round(w * dpr);
+    fxCanvas.height = Math.round(h * dpr);
+    fxView = { w, h, dpr };
+  }
+
+  function shout(text, o = {}) {
+    shouts.push({ text, t0: performance.now(), dur: 1300, kind: 'caption', color: COL.yellow, ...o });
+    runFx();
+  }
+
+  function runFx() {
+    if (fxRunning || !fxg) return;
+    fxRunning = true;
+    requestAnimationFrame(fxFrame);
+  }
+
+  function fxFrame() {
+    const g = fxg;
+    const now = performance.now();
+    g.setTransform(fxView.dpr, 0, 0, fxView.dpr, 0, 0);
+    g.clearRect(0, 0, fxView.w, fxView.h);
+    if (intro) drawJourney(g, now - intro.t0);
+    for (let i = shouts.length - 1; i >= 0; i--) if (now - shouts[i].t0 > shouts[i].dur) shouts.splice(i, 1);
+    for (const s of shouts) drawShout(g, s, now - s.t0);
+    if (intro || shouts.length) requestAnimationFrame(fxFrame);
+    else { g.clearRect(0, 0, fxView.w, fxView.h); fxRunning = false; }
+  }
+
+  const stageRect = () => $('canvasWrap').getBoundingClientRect();
+
+  /** Pixel text, italic-sheared, with a thick outline, a drop layer and a glossy fill. */
+  function slamText(g, text, x, y, size, sc, alpha, color, flash) {
+    g.save();
+    g.globalAlpha = alpha;
+    g.translate(x, y);
+    g.transform(1, 0, -0.2, 1, 0, 0);
+    g.scale(sc, sc);
+    g.font = `400 ${size}px ${PIX}`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    const d = Math.max(3, size * 0.1);
+    g.lineWidth = Math.max(5, size * 0.34);
+    g.strokeStyle = COL.black;
+    g.strokeText(text, d, d);
+    g.fillStyle = color === COL.orange ? COL.yellow : COL.orange;
+    g.fillText(text, d, d);
+    g.strokeText(text, 0, 0);
+    const gr = g.createLinearGradient(0, -size / 2, 0, size / 2);
+    gr.addColorStop(0, '#ffffff');
+    gr.addColorStop(0.42, color);
+    gr.addColorStop(1, SHADE[color] || color);
+    g.fillStyle = gr;
+    g.fillText(text, 0, 0);
+    if (flash > 0) { g.globalAlpha = alpha * flash; g.fillStyle = '#ffffff'; g.fillText(text, 0, 0); }
+    g.restore();
+  }
+
+  function drawShout(g, s, age) {
+    const r = stageRect();
+    const IN = s.kind === 'pop' ? 140 : 190, OUT = 220;
+    const kin = clamp01(age / IN), kout = clamp01((age - (s.dur - OUT)) / OUT);
+    const still = reducedMotion;
+    // Zoom in from far, wobble on impact, then leave.
+    let sc = still ? 1 : kin < 1 ? lerp(s.kind === 'pop' ? 2 : 3, 1, easeOut(kin))
+      : 1 + 0.06 * Math.exp(-(age - IN) / 80) * Math.sin((age - IN) / 16);
+    const hit = age - IN;
+    const amp = still || hit < 0 || hit > 200 ? 0 : (s.kind === 'pop' ? 3 : 8) * (1 - hit / 200);
+    const jx = (Math.random() - 0.5) * 2 * amp, jy = (Math.random() - 0.5) * 2 * amp;
+    const flash = hit >= 0 && hit < 160 ? 1 - hit / 160 : 0;
+    let alpha = Math.min(1, kin * 2) * (1 - kout);
+
+    if (s.kind === 'caption') {
+      const cx = r.left + r.width / 2;
+      const y = s.y !== undefined ? s.y : r.top + Math.min(86, r.height * 0.16);
+      const size = Math.round(Math.max(12, Math.min(30, (r.width * 0.86) / (s.text.length * 1.12))));
+      const bandH = size * 2 + (s.sub ? 30 : 0);
+      const bw = r.width * 0.86;
+      const slide = still ? 0 : (1 - easeOut(clamp01(age / 230))) * -fxView.w + easeOut(kout) * fxView.w;
+      g.save();
+      g.globalAlpha = Math.min(1, age / 120) * (1 - kout * 0.6);
+      g.translate(cx + slide, y);
+      g.transform(1, 0, -0.35, 1, 0, 0);
+      g.fillStyle = 'rgba(20,20,19,0.93)';
+      g.fillRect(-bw / 2, -bandH / 2, bw, bandH);
+      g.fillStyle = s.color;
+      g.fillRect(-bw / 2, -bandH / 2, bw, 3);
+      g.fillRect(-bw / 2, bandH / 2 - 3, bw, 3);
+      g.fillRect(-bw / 2, -bandH / 2, 14, bandH);
+      g.fillRect(-bw / 2 + 20, -bandH / 2, 5, bandH);
+      g.fillRect(bw / 2 - 14, -bandH / 2, 14, bandH);
+      g.restore();
+      const ty = y - (s.sub ? 13 : 0);
+      slamText(g, s.text, cx + jx + (still ? 0 : kout * 160), ty + jy, size, sc, alpha, s.color, flash);
+      if (s.sub) {
+        const n = still ? s.sub.length : Math.floor(clamp01((age - IN) / 420) * s.sub.length);
+        g.save();
+        g.globalAlpha = 1 - kout;
+        g.font = `600 ${r.width > 700 ? 15 : 12}px ${FONT}`;
+        g.textAlign = 'center';
+        g.textBaseline = 'middle';
+        g.fillStyle = COL.text;
+        g.fillText(s.sub.slice(0, n), cx + (still ? 0 : kout * 160), y + size * 0.62 + 8);
+        g.restore();
+      }
+      return;
+    }
+
+    if (s.kind === 'big') {
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const size = Math.round(Math.max(24, Math.min(104, r.width / (s.text.length * 1.25))));
+      sc *= 1 + (still ? 0 : kout * 0.6);
+      if (s.burst && !still) {
+        const k = clamp01(age / 520);
+        g.save();
+        g.translate(cx, cy);
+        g.globalAlpha = 1 - k;
+        for (let i = 0; i < 22; i++) {
+          const a = (i / 22) * Math.PI * 2 + 0.2;
+          const r0 = size * (0.9 + k * 1.6), r1 = r0 + size * (0.5 + (i % 3) * 0.35) * (1 - k * 0.5);
+          g.strokeStyle = i % 2 ? COL.yellow : COL.text;
+          g.lineWidth = Math.max(1, 7 * (1 - k));
+          g.beginPath();
+          g.moveTo(Math.cos(a) * r0 * 1.6, Math.sin(a) * r0);
+          g.lineTo(Math.cos(a) * r1 * 1.6, Math.sin(a) * r1);
+          g.stroke();
+        }
+        g.restore();
+        if (age < 160) {
+          g.fillStyle = `rgba(255,255,255,${0.28 * (1 - age / 160)})`;
+          g.fillRect(r.left, r.top, r.width, r.height);
+        }
+      }
+      slamText(g, s.text, cx + jx, cy + jy, size, sc, alpha, s.color, flash);
+      return;
+    }
+
+    // pop: rises from a point on the board
+    const size = s.size || 16;
+    const y = s.y - (still ? 0 : easeOut(clamp01(age / s.dur)) * 34);
+    const x = Math.max(r.left + 140, Math.min(r.right - 140, s.x));
+    alpha = Math.min(1, kin * 2) * (1 - kout);
+    slamText(g, s.text, x + jx, y + jy, size, sc, alpha, s.color, flash);
+    if (s.sub) {
+      g.save();
+      g.globalAlpha = alpha;
+      g.font = `700 12px ${FONT}`;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.lineWidth = 4;
+      g.strokeStyle = COL.black;
+      g.strokeText(s.sub, x, y + size + 6);
+      g.fillStyle = COL.text;
+      g.fillText(s.sub, x, y + size + 6);
+      g.restore();
+    }
+  }
+
+  // ---------------------------------------------------------- journey ---
+  // Before the first round: the order card's T-shirt rises to the stage, comes
+  // apart into its six pattern pieces, the pieces fly into the piece bank,
+  // and the round starts with ¿LISTOS? ¡YA!
+
+  const T_FLY = 300, T_EXPLODE = 1500, T_BANK = 2900, T_ROLL = 4400, T_READY = 5600, T_GO = 6300, T_END = 6900;
+  let swallowClick = 0;
+
+  function introSize() {
+    return Object.keys(counts).reduce((a, b) => (counts[b] > counts[a] ? b : a), 'M');
+  }
+
+  function startIntro() {
+    if (!G || G.phase !== 'play' || G.t0 !== null || !fxg) return;
+    const size = introSize();
+    const n = totalShirts();
+    const sizes = Object.keys(counts).filter((k) => counts[k]);
+    const cues = [
+      [0, () => {
+        const card = sizeCards[size];
+        if (card) { card.classList.add('pulse'); setTimeout(() => card.classList.remove('pulse'), 1300); }
+      }],
+      [80, () => shout('UN PEDIDO DE PLAYERAS', { sub: `${n} ${n === 1 ? 'playera' : 'playeras'} · ${sizes.length === 1 ? 'talla' : 'tallas'} ${sizes.join(', ')}`, dur: 1380 })],
+      [T_FLY, () => sfx('pop')],
+      [T_EXPLODE, () => { sfx('burst'); shout('¡SE DESARMA EN 6 PIEZAS!', { sub: 'delantero · espalda · 2 mangas · cuello · bolsillo', dur: 1380 }); }],
+      [T_BANK, () => { sfx('whoosh'); shout('¡AL BANCO DE PIEZAS!', { sub: 'Ahí eliges qué pieza acomodar.', dur: 1450 }); }],
+      [T_BANK + 1250, () => revealAllTiles(true)],
+      [T_ROLL, () => shout('ACOMÓDALAS EN EL ROLLO', { sub: 'Gana el tendido más corto. Tienes 1:30.', dur: 1180 })],
+      [T_READY, () => { sfx('count'); shout('¿LISTOS?', { kind: 'big', color: COL.text, dur: 680 }); }],
+      [T_GO, () => { sfx('go'); shout('¡YA!', { kind: 'big', burst: true, dur: 720 }); }],
+      [T_END, () => endIntro(false)],
+    ];
+    intro = { t0: performance.now(), cue: 0, step: 0, size, cues, landed: new Set(), revealed: new Set() };
+    $('keys').style.visibility = 'hidden';
+    setHeading('Así se hace una playera', 'De la playera a sus piezas, y de las piezas al rollo de tela.');
+    updateSide();
+    requestRender();
+    const tick = () => {
+      if (!intro) return;
+      const t = performance.now() - intro.t0;
+      while (intro && intro.cue < intro.cues.length && t >= intro.cues[intro.cue][0]) intro.cues[intro.cue++][1]();
+      if (!intro) return;
+      const step = t < T_EXPLODE ? 1 : t < T_ROLL ? 2 : 3;
+      if (step !== intro.step) { intro.step = step; setStep(step); }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    runFx();
+  }
+
+  /** Ends the journey; a skip still gets a short ¡YA!. */
+  function endIntro(skipped = true) {
+    if (!intro) return;
+    intro = null;
+    if (skipped) {
+      shouts.length = 0;
+      sfx('go');
+      shout('¡YA!', { kind: 'big', burst: true, dur: 650 });
+    }
+    setStep(3);
+    setHeading(PLAY_TITLE, PLAY_SUB);
+    $('keys').style.visibility = '';
+    updateSide();
+    requestRender();
+  }
+
+  function tileHidden(key) {
+    return !!intro && !intro.revealed.has(key);
+  }
+
+  function revealTile(key) {
+    if (!intro || intro.revealed.has(key)) return;
+    intro.revealed.add(key);
+    const b = tileEls.get(key);
+    if (b) b.className = 'in';
+  }
+
+  function revealAllTiles(cascade) {
+    if (!intro) return;
+    let k = 0;
+    for (const key of tileEls.keys()) {
+      if (intro.revealed.has(key)) continue;
+      if (cascade) setTimeout(() => revealTile(key), 26 * k++);
+      else revealTile(key);
+    }
+  }
+
+  function rectOf(el) {
+    const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+    return r && r.width ? r : null;
+  }
+
+  function spotlight(g, rect, t) {
+    if (!rect) return;
+    const pad = 6;
+    g.clearRect(rect.left - pad, rect.top - pad, rect.width + pad * 2, rect.height + pad * 2);
+    g.strokeStyle = COL.yellow;
+    g.lineWidth = 3;
+    g.setLineDash([10, 6]);
+    g.lineDashOffset = -t / 30;
+    g.strokeRect(rect.left - pad, rect.top - pad, rect.width + pad * 2, rect.height + pad * 2);
+    g.setLineDash([]);
+  }
+
+  function drawJourney(g, t) {
+    if (reducedMotion) t = Math.max(t, T_BANK + 1300);
+    const stage = stageRect();
+    const fade = clamp01(t / 250) * (1 - clamp01((t - T_GO) / 450));
+    g.fillStyle = `rgba(12,12,11,${0.8 * fade})`;
+    g.fillRect(0, 0, fxView.w, fxView.h);
+    if (t < T_EXPLODE) spotlight(g, rectOf($('orderCard')), t);
+    else if (t >= T_BANK && t < T_ROLL) spotlight(g, rectOf($('piecesCard')), t);
+    else if (t >= T_ROLL && t < T_GO + 200) spotlight(g, stage, t);
+
+    const size = intro.size, sc = Garments.SIZE_SCALE[size];
+    const S = Math.min((stage.height * 0.5) / (80 * sc), (stage.width * 0.72) / (212 * sc));
+    const cx = stage.left + stage.width / 2, cy = stage.top + stage.height * 0.56;
+
+    // 1 · the shirt rises out of its size card
+    if (t < T_EXPLODE) {
+      const icon = rectOf(shirtIcons[size]);
+      const p = easeBack(clamp01((t - T_FLY) / 700));
+      const s0 = icon ? Math.min((icon.width - 6) / (94 * 1.16), (icon.height - 4) / (74 * 1.16)) : S * 0.2;
+      const x0 = icon ? icon.left + icon.width / 2 : cx, y0 = icon ? icon.top + icon.height / 2 : cy;
+      const bob = t > T_FLY + 700 && !reducedMotion ? Math.sin((t - T_FLY) / 160) * 3 : 0;
+      if (t >= T_FLY) drawShirt(g, lerp(x0, cx, p), lerp(y0, cy, p) + bob, lerp(s0, S, clamp01(p)), sc, () => 'fill', 2);
+      return;
+    }
+
+    // 2 · it comes apart  ·  3 · the pieces fly into the bank
+    PARTS.forEach((part, i) => {
+      const p1 = easeBack(clamp01((t - T_EXPLODE - i * 40) / 560));
+      const q = clamp01((t - T_BANK - i * 110) / 650);
+      if (q <= 0) {
+        if (part.type === 'cuello') {
+          const pts = lerpPts(WORN.cuello.pts, collarPts(EXPLODED.cuello), clamp01(p1));
+          strokeCollar(g, pts, S, cx, cy, sc, 'fill');
+        } else {
+          const pose = lerpPose(WORN[part.id], EXPLODED[part.id], p1);
+          if (!reducedMotion && t > T_EXPLODE + 700) pose.y += Math.sin((t + i * 300) / 220) * 1.2;
+          partPath(g, part.type, pose, S, cx, cy, sc);
+          fillPart(g, part.type, 'fill', 2);
+        }
+        return;
+      }
+      const key = `${part.type}-${size}`;
+      if (q >= 1) {
+        if (!intro.landed.has(part.id)) { intro.landed.add(part.id); revealTile(key); sfx('place'); }
+        return;
+      }
+      const tile = rectOf(tileEls.get(key));
+      const E = EXPLODED[part.id];
+      const x0 = cx + E.x * sc * S, y0 = cy + E.y * sc * S;
+      const { w, h } = BOUNDS[part.type];
+      const tw = tile ? tile.width : 50, th = tile ? tile.height : 40;
+      const sT = Math.min((tw - 8) / (w * sc), (th - 8) / (h * sc), 1.2);
+      const x1 = tile ? tile.left + tw / 2 : 40, y1 = tile ? tile.top + th / 2 + 2 : 300;
+      const e = ease(q);
+      const lift = Math.min(140, Math.hypot(x1 - x0, y1 - y0) * 0.35) * Math.sin(Math.PI * e);
+      const a1 = part.id === 'mangaL' ? 360 : 0;
+      const pose = { x: 0, y: 0, a: lerp(E.a, a1, e), ys: 1 };
+      partPath(g, part.type, pose, lerp(S, sT, e), lerp(x0, x1, e), lerp(y0, y1, e) - lift, sc);
+      fillPart(g, part.type, 'fill', 2);
+    });
   }
 
   // ----------------------------------------------------------- input ---
@@ -825,15 +1582,25 @@
     if (c) setHeld(c.x, c.y);
   }
 
-  const interactive = () => G && (G.phase === 'play' || G.phase === 'review');
+  const interactive = () => G && !intro && (G.phase === 'play' || G.phase === 'review');
 
   canvas.addEventListener('pointermove', (e) => {
-    if (!G || G.phase !== 'play') return;
+    if (!G || intro || G.phase !== 'play') return;
     startClock();
     pointer = toCm(e);
     followPointer();
   });
   canvas.addEventListener('pointerleave', () => { pointer = null; });
+  window.addEventListener('pointerdown', (e) => {
+    if (!intro) return;
+    e.preventDefault();
+    e.stopPropagation();
+    swallowClick = performance.now();
+    endIntro();
+  }, true);
+  window.addEventListener('click', (e) => {
+    if (performance.now() - swallowClick < 600) { e.preventDefault(); e.stopPropagation(); swallowClick = 0; }
+  }, true);
   canvas.addEventListener('pointerdown', (e) => {
     if (!interactive()) return;
     pointer = toCm(e);
@@ -853,7 +1620,7 @@
   });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   canvas.addEventListener('wheel', (e) => {
-    if (!G || G.phase !== 'play' || !G.held) return;
+    if (!G || intro || G.phase !== 'play' || !G.held) return;
     e.preventDefault();
     rotate();
   }, { passive: false });
@@ -869,11 +1636,32 @@
     if (G.held.ok) { place(); return; }
     const id = G.board.ownerAt(Math.floor(p.x), Math.floor(p.y));
     if (id >= 0) { pickUp(id); return; }
+    sfx('bad');
     toast('Se traslapa o se sale del rollo');
+  }
+
+  function toggleSound() {
+    const on = Sound.toggle();
+    const b = $('bSound');
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? '♪ On' : '♪ Off';
+  }
+
+  function help() {
+    if (G.phase === 'result') newGame();
+    if (G.phase === 'play' && G.t0 === null && !G.placements.length) startIntro();
+    else toast('La intro se ve antes de empezar o al final');
   }
 
   const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'r', 'R', 'c', 'C', 'z', 'Z', 'Backspace'];
   window.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'm' || e.key === 'M') { toggleSound(); return; }
+    if (intro) {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endIntro(); }
+      return;
+    }
+    if (e.key === 'h' || e.key === 'H') { help(); return; }
     if (!interactive() || !KEYS.includes(e.key)) return;
     e.preventDefault();
     pointer = null;
@@ -898,11 +1686,15 @@
     }
   });
 
-  $('bRotate').onclick = () => { startClock(); rotate(); };
-  $('bUndo').onclick = undo;
-  $('bShelf').onclick = fillShelves;
+  const guard = (fn) => () => { if (intro) endIntro(); fn(); };
+  $('bRotate').onclick = guard(() => { startClock(); rotate(); });
+  $('bUndo').onclick = guard(undo);
+  $('bShelf').onclick = guard(fillShelves);
   $('bFinish').onclick = () => { if (G.phase === 'review') startMove(); };
-  $('bAgain').onclick = newGame;
+  $('bAgain').onclick = () => { newGame(); sfx('start'); };
+  $('bHelp').onclick = help;
+  $('bSound').onclick = toggleSound;
+  if (!Sound.on) { $('bSound').setAttribute('aria-pressed', 'false'); $('bSound').textContent = '♪ Off'; }
   window.addEventListener('resize', resize);
 
   // ------------------------------------------------------------ misc ---
@@ -913,7 +1705,7 @@
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 1100);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1300);
   }
 
   function countUp(el, target, format, ms = 900) {
@@ -929,6 +1721,8 @@
   const pc = (x) => `${(x * 100).toFixed(1)}%`;
   const fmt = (x) => Math.round(x).toLocaleString('en-US');
 
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestRender());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { resize(); updateSide(); });
   newGame();
+  // Attract mode on load; ?intro=0 skips it (handy at a booth that restarts often).
+  if (typeof location !== 'undefined' && !/[?&]intro=0\b/.test(location.search)) startIntro();
 })();

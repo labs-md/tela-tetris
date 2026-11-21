@@ -20,28 +20,30 @@
 
   const GRAIN = [0, 180];
 
-  // Outlines in cm for size M, lying with the grain along x.
+  // Outlines in cm for size M, lying with the grain along x. Colors follow the
+  // Labs palette: one yellow shirt (front, darker back, lighter sleeves), a
+  // white collar rib and an orange pocket.
   const PIECE_TYPES = {
     delantero: {
-      name: 'Delantero', color: '#e9fb5a', arrow: true,
+      name: 'Delantero', color: '#E8FB5B', arrow: true,
       poly: [[2, 6], [0, 18], [8, 26], [0, 34], [2, 46], [10, 49], [22, 52],
              [70, 52], [70, 0], [22, 0], [10, 3]],
     },
     espalda: {
-      name: 'Espalda', color: '#e9fb5a', arrow: true,
+      name: 'Espalda', color: '#C6D64C', arrow: true,
       poly: [[2, 6], [0, 18], [2, 26], [0, 34], [2, 46], [10, 49], [22, 52],
              [70, 52], [70, 0], [22, 0], [10, 3]],
     },
     manga: {
-      name: 'Manga', color: '#c6b3e4', arrow: true,
+      name: 'Manga', color: '#F3FCA8', arrow: true,
       poly: [[8, 1], [22, 0], [22, 40], [8, 39], [3, 32], [0, 20], [3, 8]],
     },
     cuello: {
-      name: 'Cuello', color: '#f6f6f1', arrow: false,
+      name: 'Cuello', color: '#FFFFFF', arrow: false,
       poly: [[0, 0], [4, 0], [4, 44], [0, 44]],
     },
     bolsillo: {
-      name: 'Bolsillo', color: '#cdc1ba', arrow: false,
+      name: 'Bolsillo', color: '#F95300', arrow: false,
       poly: [[0, 0], [11, 0], [14, 7], [11, 14], [0, 14]],
     },
   };

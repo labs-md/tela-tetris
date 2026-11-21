@@ -4,207 +4,330 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TelaTetris</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1 -1 13 11' shape-rendering='crispEdges'%3E%3Crect x='-1' y='-1' width='13' height='11' fill='%231C1C1B'/%3E%3Cg fill='%23E8FB5B'%3E%3Crect x='2' width='3' height='1'/%3E%3Crect x='6' width='3' height='1'/%3E%3Crect x='1' y='1' width='9' height='1'/%3E%3Crect y='2' width='11' height='2'/%3E%3Crect y='4' width='2' height='1'/%3E%3Crect x='3' y='4' width='5' height='5'/%3E%3Crect x='9' y='4' width='2' height='1'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preload" href="fonts/press-start-2p.ttf" as="font" type="font/ttf" crossorigin>
 <style>
+  @font-face {
+    font-family: 'Press Start 2P'; font-style: normal; font-weight: 400; font-display: swap;
+    src: url('fonts/press-start-2p.ttf') format('truetype');
+  }
+  @font-face {
+    font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 400; font-display: swap;
+    src: url('fonts/ibm-plex-mono.ttf') format('truetype');
+  }
+  @font-face {
+    font-family: 'IBM Plex Mono'; font-style: normal; font-weight: 600 800; font-display: swap;
+    src: url('fonts/ibm-plex-mono-bold.ttf') format('truetype');
+  }
+  /* Labs palette (labs.gt): yellow, black, orange, white, warm grays. */
   :root {
-    --bg: #1c1c1c;
-    --panel: #242424;
-    --panel-2: #2c2c2c;
-    --line: #3a3a3a;
-    --text: #f2f2ee;
-    --muted: #a3a39c;
-    --lime: #e9fb5a;
-    --orange: #ff5a00;
-    --purple: #c6b3e4;
-    --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --serif: Newsreader, Georgia, "Times New Roman", serif;
+    --black: #1C1C1B;
+    --bg: #1C1C1B;
+    --panel: #242420;
+    --panel-2: #2E2D29;
+    --line: #3D3C36;
+    --text: #FFFFFF;
+    --muted: #CFCFCD;
+    --dim: #8F8C85;
+    --yellow: #E8FB5B;
+    --orange: #F95300;
+    --olive: #3B3D2B;
+    --warm: #46423F;
+    --bev-hi: #5C5A53;
+    --bev-lo: #121211;
+    --sans: "IBM Plex Mono", ui-monospace, monospace;
+    --pixel: "Press Start 2P", ui-monospace, monospace;
+    --gut: clamp(14px, 1.6vw, 28px);
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { margin: 0; height: 100%; }
+  html, body { margin: 0; }
   body {
     background: var(--bg); color: var(--text); font-family: var(--sans);
-    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    -webkit-font-smoothing: antialiased; font-size: 14px; line-height: 1.45;
+  }
+  /* CRT scanlines, very light, over the whole cabinet */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.13) 2px 3px);
   }
   button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+  ::selection { background: var(--yellow); color: var(--black); }
+  * { scrollbar-color: var(--dim) var(--panel); scrollbar-width: thin; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ---------------------------------------------------------- header --- */
   .top {
-    display: flex; align-items: center; justify-content: space-between; gap: 24px;
-    padding: 18px 28px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+    display: flex; align-items: center; gap: 20px; padding: 10px var(--gut);
+    border-bottom: 4px solid var(--yellow); background: var(--black);
   }
-  .brand { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-  .logo { font-weight: 800; font-size: 30px; letter-spacing: -0.04em; color: var(--lime); }
-  .tag { font-family: var(--serif); font-size: 20px; color: var(--text); }
-  .tag em { color: var(--lime); }
+  .brand { display: flex; align-items: center; gap: 12px; flex: none; }
+  .brand svg { width: 34px; height: auto; display: block; }
+  .logo {
+    font: 400 clamp(16px, 1.7vw, 24px)/1 var(--pixel); color: var(--yellow);
+    text-transform: uppercase; text-shadow: 3px 3px 0 var(--orange); letter-spacing: 0.02em;
+  }
+  .rail { display: flex; align-items: stretch; gap: 0; margin: 0 auto; list-style: none; padding: 0; }
+  .rail li {
+    display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+    font: 400 9px/1.3 var(--pixel); color: var(--dim); text-transform: uppercase;
+    border: 2px solid var(--line); margin-left: -2px; background: var(--black); white-space: nowrap;
+  }
+  .rail li .n {
+    display: inline-grid; place-items: center; width: 18px; height: 18px;
+    border: 2px solid currentColor; font-size: 8px;
+  }
+  .rail li.done { color: var(--yellow); background: var(--olive); border-color: var(--olive); }
+  .rail li.done .n { background: var(--yellow); color: var(--olive); border-color: var(--yellow); }
+  .rail li.on { color: var(--black); background: var(--yellow); border-color: var(--yellow); position: relative; z-index: 1; }
+  .rail li.on .n { background: var(--black); color: var(--yellow); border-color: var(--black); }
+  .rail li.on.tt { background: var(--text); border-color: var(--text); }
+  .rail .arw { color: var(--line); align-self: center; padding: 0 4px; font: 400 9px var(--pixel); }
+  .tools { display: flex; gap: 8px; flex: none; }
+  .tool {
+    border: 2px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi);
+    background: var(--panel-2); padding: 7px 10px; font: 400 9px/1.2 var(--pixel); text-transform: uppercase;
+  }
+  .tool:hover { background: #3a3934; }
+  .tool[aria-pressed="false"] { color: var(--dim); }
 
-  .order { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .order .lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-  .sizes { display: flex; gap: 8px; }
-  .size {
-    display: flex; align-items: center; gap: 2px; background: var(--panel);
-    border: 1px solid var(--line); border-radius: 10px; padding: 3px;
-  }
-  .size b { width: 26px; text-align: center; font-size: 13px; color: var(--lime); }
-  .size span { min-width: 18px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .size button {
-    width: 26px; height: 26px; border: 0; border-radius: 7px; background: var(--panel-2);
-    font-size: 16px; line-height: 1;
-  }
-  .size button:hover { background: #393939; }
-  .size button:disabled { opacity: 0.35; cursor: default; }
-  .meta { font-size: 13px; color: var(--muted); }
-
+  /* ---------------------------------------------------------- layout --- */
   .layout {
-    display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px;
-    padding: 22px 28px 28px;
-  }
-  .stage-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
-  .stage-head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
-  .stage-head p { margin: 0; color: var(--muted); font-size: 14px; }
-  .canvas-wrap { position: relative; width: 100%; }
-  canvas#board { display: block; width: 100%; touch-action: none; user-select: none; }
-  .keys { margin-top: 14px; display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
-  kbd {
-    display: inline-block; min-width: 22px; padding: 2px 6px; margin-right: 4px;
-    border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
-    background: var(--panel); color: var(--text); font: 600 12px var(--sans); text-align: center;
+    flex: 1; display: grid; grid-template-columns: 352px minmax(0, 1fr); gap: 18px;
+    padding: 16px var(--gut) 14px; width: 100%; max-width: 1760px; margin: 0 auto;
   }
 
-  .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  /* aside: order → pieces → actions */
+  .side { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+  .side > .panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .card { background: var(--panel); border: 2px solid var(--line); padding: 12px 14px; }
   .card h2 {
-    margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--muted);
+    margin: 0 0 10px; font: 400 10px/1.6 var(--pixel); text-transform: uppercase; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
   }
-  .queue { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .queue button {
-    position: relative; height: 74px; border: 1px solid var(--line); border-radius: 10px;
-    background: var(--panel-2); padding: 0; display: grid; place-items: center;
+  .card h2 .n {
+    display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none;
+    background: var(--yellow); color: var(--black); font-size: 9px;
   }
-  .queue button:hover { border-color: var(--lime); }
-  .queue button.first { border-color: #6b6b5a; }
-  .queue canvas { width: 100%; height: 100%; display: block; }
-  .queue .more { color: var(--muted); font-size: 13px; font-weight: 600; cursor: default; }
-  .queue .more:hover { border-color: var(--line); }
-  .queue-empty { color: var(--muted); font-size: 14px; grid-column: 1 / -1; padding: 8px 0; }
+  .card h2 .aside { margin-left: auto; font: 600 11px var(--sans); color: var(--muted); text-transform: none; }
 
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; }
-  .stat .k { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
-  .stat .v { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
-  .stat .v.low { color: var(--orange); animation: blink 1s steps(2, start) infinite; }
-  @keyframes blink { 50% { opacity: 0.55; } }
-  .stat .v small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+  .sizes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .size {
+    display: grid; justify-items: center; gap: 3px; padding: 6px 4px 5px;
+    background: var(--bg); border: 2px solid var(--line);
+  }
+  .size.zero { opacity: 0.55; }
+  .size canvas { width: 100%; height: 40px; display: block; }
+  .size b { font: 400 10px/1 var(--pixel); color: var(--yellow); }
+  .stepper { display: flex; align-items: center; gap: 2px; }
+  .stepper span { min-width: 16px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stepper button {
+    width: 22px; height: 22px; padding: 0; border: 2px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi);
+    background: var(--panel-2); font-size: 14px; line-height: 1;
+  }
+  .stepper button:hover:not(:disabled) { background: #3a3934; }
+  .stepper button:disabled { opacity: 0.3; cursor: default; }
+  .meta { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+  .meta b { color: var(--yellow); }
+
+  .flow {
+    display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; padding: 0 4px;
+  }
+  .flow::before, .flow::after { content: ""; flex: 1; border-top: 2px dashed var(--line); }
+  .flow i { font-style: normal; color: var(--yellow); }
+
+  .queue { display: grid; grid-template-columns: 18px repeat(5, minmax(0, 1fr)); gap: 5px; align-items: stretch; }
+  .qhead { font-size: 10px; line-height: 1.2; color: var(--muted); text-align: center; align-self: end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qrow { font: 400 9px/1 var(--pixel); color: var(--yellow); align-self: center; text-align: center; }
+  .queue button {
+    position: relative; min-width: 0; height: 46px; border: 2px solid var(--line);
+    background: var(--bg); padding: 4px 2px 2px; display: grid; place-items: center;
+  }
+  .queue button:hover:not(:disabled) { border-color: var(--muted); }
+  .queue button[aria-pressed="true"] { border-color: var(--yellow); background: var(--olive); }
+  .queue button:disabled { opacity: 0.28; cursor: default; }
+  .queue canvas { width: 100%; height: 100%; display: block; }
+  .queue-count {
+    position: absolute; top: 2px; right: 3px; color: var(--text);
+    font: 400 7px/1 var(--pixel); font-variant-numeric: tabular-nums;
+  }
+  .queue button[aria-pressed="true"] .queue-count { color: var(--yellow); }
+  /* the journey drops pieces into the bank: tiles wait hidden, then pop in */
+  .queue button.out { opacity: 0; transform: scale(0.3); }
+  .queue button.in { animation: tile-in 0.34s cubic-bezier(0.2, 1.7, 0.45, 1) both; }
+  @keyframes tile-in { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+  .size.pulse { border-color: var(--yellow); animation: pulse 0.3s steps(2) 4; }
+  @keyframes pulse { 50% { background: var(--olive); transform: translateY(-3px); } }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
+
+  .queue-empty { color: var(--muted); font-size: 13px; grid-column: 1 / -1; padding: 6px 0; }
 
   .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .btn {
-    border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px;
-    padding: 11px 12px; font-weight: 600; font-size: 14px;
+    border: 3px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi); background: var(--panel-2);
+    padding: 9px 10px; font-weight: 700; font-size: 13px;
   }
-  .btn:hover:not(:disabled) { border-color: #5a5a5a; background: #333; }
+  .btn:hover:not(:disabled) { background: #3a3934; }
+  .btn:active:not(:disabled), .stepper button:active:not(:disabled), .tool:active { border-color: var(--bev-lo) var(--bev-hi) var(--bev-hi) var(--bev-lo); }
   .btn:disabled { opacity: 0.4; cursor: default; }
   .btn.wide { grid-column: 1 / -1; }
-  .btn.primary { background: var(--lime); color: #151515; border-color: var(--lime); font-weight: 800; font-size: 16px; padding: 14px; }
-  .btn.primary:hover:not(:disabled) { background: #f3ff8a; border-color: #f3ff8a; }
-  .btn.primary.ready { animation: pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(233, 251, 90, 0.55); } 50% { box-shadow: 0 0 0 10px rgba(233, 251, 90, 0); } }
-  .hint { color: var(--muted); font-size: 12px; margin: 10px 0 0; line-height: 1.45; }
-
-  .progress { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin: 10px 0 12px; }
-  .progress i { display: block; height: 100%; width: 0; background: var(--lime); border-radius: 99px; }
-  .solve-line { font-size: 14px; color: var(--muted); margin: 4px 0; font-variant-numeric: tabular-nums; }
-  .solve-line b { color: var(--text); }
-
-  .saved .k { font-size: 13px; font-weight: 700; color: var(--muted); }
-  .saved .big { font-size: 64px; line-height: 1; font-weight: 800; letter-spacing: -0.05em; color: var(--lime); margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .saved .big small { font-size: 28px; letter-spacing: -0.02em; margin-left: 4px; }
-  .saved .pct { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; color: var(--lime); font-variant-numeric: tabular-nums; }
-  .saved.lose .big, .saved.lose .pct { color: var(--orange); }
-  .saved .note { font-family: var(--serif); font-style: italic; font-size: 16px; margin-top: 8px; color: var(--text); }
-  .badge {
-    display: inline-block; margin-top: 10px; background: var(--lime); color: #151515;
-    font-size: 11px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 99px;
+  .btn kbd { margin: 0 0 0 6px; }
+  .btn.primary {
+    background: var(--yellow); color: var(--black); border-color: #f6ffb0 #8a9533 #8a9533 #f6ffb0;
+    font: 400 10px/1.8 var(--pixel); padding: 12px;
   }
-  .saved.lose .badge { background: var(--orange); }
+  .btn.primary:hover:not(:disabled) { background: #f2ff8c; }
+  .btn.primary:active:not(:disabled) { border-color: #8a9533 #f6ffb0 #f6ffb0 #8a9533; }
+  .hint { color: var(--muted); font-size: 12px; margin: 0; line-height: 1.45; }
 
-  table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-  table.cmp th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 0 0 6px; }
-  table.cmp th:not(:first-child), table.cmp td:not(:first-child) { text-align: right; }
-  table.cmp td { padding: 7px 0; border-top: 1px solid var(--line); }
-  table.cmp tr.me td:first-child { color: var(--text); }
-  table.cmp tr.tt td { color: var(--lime); font-weight: 700; }
-  table.cmp tr.ref td { color: var(--muted); }
+  /* stage: title + HUD, the roll, controls */
+  .stage { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
+  .stage-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .stage-head .ttl { min-width: 0; }
+  .stage-head h1 { margin: 0; font: 400 clamp(12px, 1.05vw, 16px)/1.6 var(--pixel); text-wrap: balance; }
+  .stage-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud { display: grid; grid-template-columns: repeat(4, auto); gap: 6px; flex: none; }
+  .stat { background: var(--panel); border: 2px solid var(--line); padding: 6px 10px 5px; min-width: 96px; }
+  .stat .k { font: 400 7px/1.4 var(--pixel); color: var(--muted); text-transform: uppercase; }
+  .stat .v { font: 400 16px/1.5 var(--pixel); font-variant-numeric: tabular-nums; margin-top: 3px; color: var(--yellow); white-space: nowrap; }
+  .stat .v small { font: 600 11px var(--sans); color: var(--muted); margin-left: 3px; }
+  .stat.time .v { color: var(--text); }
+  .stat .v.low { color: var(--orange); animation: blink 1s steps(2, start) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
 
-  .checks { display: grid; grid-template-columns: 1fr auto auto; gap: 8px 14px; align-items: center; font-size: 14px; }
-  .checks .h { font-size: 11px; color: var(--muted); font-weight: 600; text-align: center; }
-  .ok, .bad { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; justify-self: center; }
-  .ok { background: var(--lime); color: #151515; }
-  .bad { background: var(--orange); color: #151515; }
-
-  .foot { font-family: var(--serif); font-style: italic; color: var(--muted); font-size: 13px; line-height: 1.45; }
+  .canvas-wrap {
+    position: relative; width: 100%; background: var(--panel);
+    border: 6px solid; border-color: var(--bev-hi) var(--bev-lo) var(--bev-lo) var(--bev-hi);
+    box-shadow: 0 0 0 2px var(--black), 0 0 0 4px var(--line);
+  }
+  canvas#board { display: block; width: 100%; touch-action: none; user-select: none; }
+  .keys { display: flex; gap: 6px 16px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+  kbd {
+    display: inline-block; min-width: 20px; padding: 1px 5px; margin-right: 4px;
+    border: 2px solid var(--line); border-bottom-width: 4px;
+    background: var(--panel); color: var(--text); font: 700 11px var(--sans); text-align: center;
+  }
 
   .toast {
-    position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
-    background: var(--orange); color: #151515; font-weight: 700; font-size: 14px;
-    padding: 8px 14px; border-radius: 99px; opacity: 0; transition: opacity 0.15s; pointer-events: none;
+    position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    background: var(--orange); color: var(--black); font: 400 10px/1.6 var(--pixel);
+    padding: 8px 14px; opacity: 0; transition: opacity 0.15s; pointer-events: none; white-space: nowrap;
+    box-shadow: 4px 4px 0 var(--black);
   }
   .toast.show { opacity: 1; }
 
+  /* solve + result */
+  .progress { height: 10px; background: var(--bg); border: 2px solid var(--line); margin: 6px 0 12px; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--yellow); }
+  .solve-line { font-size: 14px; color: var(--muted); margin: 4px 0; font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
+  .solve-line b { color: var(--text); }
+  .solve-line.tt b { color: var(--yellow); }
+
+  .saved { background: var(--yellow); color: var(--black); border-color: var(--yellow); padding: 16px; box-shadow: 6px 6px 0 var(--orange); }
+  .saved .k { font: 400 10px/1.6 var(--pixel); text-transform: uppercase; }
+  .saved .big { font: 400 40px/1.3 var(--pixel); margin-top: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .saved .big small { font: 700 16px var(--sans); margin-left: 6px; }
+  .saved .pct { font: 400 16px/1.6 var(--pixel); font-variant-numeric: tabular-nums; }
+  .saved .note { font-size: 13px; margin-top: 10px; color: var(--olive); font-weight: 600; }
+  .saved .note b { color: var(--black); }
+  .saved .shirts { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 2px solid rgba(28,28,27,0.25); }
+  .saved .shirts svg { width: 34px; flex: none; }
+  .saved .shirts span { font: 700 13px/1.35 var(--sans); }
+  .saved .shirts strong { font: 400 14px var(--pixel); display: block; margin-bottom: 4px; }
+  .saved.lose { background: var(--orange); border-color: var(--orange); box-shadow: 6px 6px 0 var(--yellow); }
+  .saved.lose .note { color: var(--black); }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  table.cmp th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 0 0 6px; }
+  table.cmp th:not(:first-child), table.cmp td:not(:first-child) { text-align: right; }
+  table.cmp td { padding: 6px 0; border-top: 1px solid var(--line); }
+  table.cmp tr.me td { color: var(--orange); font-weight: 700; }
+  table.cmp tr.me td span { color: var(--muted); font-weight: 400; }
+  table.cmp tr.tt td { color: var(--yellow); font-weight: 700; }
+  table.cmp tr.ref td { color: var(--muted); }
+  .foot { color: var(--dim); font-size: 11px; line-height: 1.5; margin: 0; }
+
+  /* --------------------------------------- fit one laptop screen (16:9) --- */
+  @media (min-width: 981px) and (min-height: 560px) {
+    .app { height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+    .layout { min-height: 0; grid-template-rows: minmax(0, 1fr); }
+    .side { overflow: auto; }
+    .canvas-wrap { flex: 1; min-height: 0; }
+    canvas#board { position: absolute; inset: 0; height: 100%; }
+  }
+  @media (min-width: 981px) and (max-width: 1240px) {
+    .layout { grid-template-columns: 316px minmax(0, 1fr); gap: 14px; }
+    .rail li { padding: 6px 8px; font-size: 8px; }
+    .rail .arw { display: none; }
+    .stat { min-width: 82px; padding: 5px 8px 4px; }
+    .stat .v { font-size: 13px; }
+  }
+  @media (min-width: 981px) and (max-height: 720px) {
+    .size canvas { height: 30px; }
+    .queue button { height: 40px; }
+    .card { padding: 10px 12px; }
+    .stage-head p { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
   @media (max-width: 980px) {
-    .layout { grid-template-columns: 1fr; padding: 16px; }
-    .top { padding: 14px 16px; }
+    .top { flex-wrap: wrap; gap: 10px 16px; }
+    .rail { order: 3; width: 100%; overflow-x: auto; margin: 0; }
+    .rail .arw { display: none; }
+    .tools { margin-left: auto; }
+    .layout { grid-template-columns: 1fr; padding: 14px 16px; }
+    .stage { order: -1; }
+    .stage-head { flex-wrap: wrap; }
+    .hud { width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .stat { min-width: 0; }
+    .stat .v { font-size: 12px; }
     .keys { display: none; }
+  }
+  @media (max-width: 480px) {
+    .sizes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stepper button { width: 32px; height: 32px; }
+    .hud { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .brand svg { display: none; }
   }
 </style>
 </head>
 <body>
+<div class="app">
 <header class="top">
   <div class="brand">
+    <svg viewBox="0 0 11 9" shape-rendering="crispEdges" aria-hidden="true"><g fill="#E8FB5B"><rect x="2" width="3" height="1"/><rect x="6" width="3" height="1"/><rect x="1" y="1" width="9" height="1"/><rect y="2" width="11" height="2"/><rect y="4" width="2" height="1"/><rect x="3" y="4" width="5" height="5"/><rect x="9" y="4" width="2" height="1"/></g><rect x="6" y="5" width="1" height="1" fill="#F95300"/></svg>
     <span class="logo">TelaTetris</span>
-    <span class="tag">El mismo pedido, <em>menos tela.</em></span>
   </div>
-  <div class="order">
-    <span class="lbl">Pedido</span>
-    <div class="sizes" id="sizes"></div>
-    <span class="meta" id="orderMeta"></span>
+  <ol class="rail" aria-label="Etapas">
+    <li id="step1"><span class="n">1</span>Playeras</li><span class="arw" aria-hidden="true">›</span>
+    <li id="step2"><span class="n">2</span>Piezas</li><span class="arw" aria-hidden="true">›</span>
+    <li id="step3"><span class="n">3</span>Tu tendido</li><span class="arw" aria-hidden="true">›</span>
+    <li id="step4" class="tt-step"><span class="n">4</span>TelaTetris</li><span class="arw" aria-hidden="true">›</span>
+    <li id="step5"><span class="n">5</span>Ahorro</li>
+  </ol>
+  <div class="tools">
+    <button class="tool" id="bHelp" title="Ver la introducción (H)">¿Cómo?</button>
+    <button class="tool" id="bSound" aria-pressed="true" title="Sonido (M)">♪ On</button>
   </div>
 </header>
 
 <main class="layout">
-  <section class="stage">
-    <div class="stage-head">
-      <h1 id="stageTitle">Tu turno: acomoda el pedido</h1>
-      <p id="stageSub">Gana el tendido que use menos rollo.</p>
-    </div>
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="board"></canvas>
-      <div class="toast" id="toast"></div>
-    </div>
-    <div class="keys" id="keys">
-      <span><kbd>Clic</kbd>colocar / levantar</span>
-      <span><kbd>Espacio</kbd>deslizar al inicio del rollo</span>
-      <span><kbd>R</kbd>girar 180°</span>
-      <span><kbd>←↑↓→</kbd>mover 1 cm (<kbd>Shift</kbd>5 cm)</span>
-      <span><kbd>C</kbd>siguiente pieza</span>
-      <span><kbd>Z</kbd>deshacer</span>
-    </div>
-  </section>
-
   <aside class="side">
-    <div id="playPanel" class="side">
-      <div class="card">
-        <h2>Siguiente</h2>
-        <div class="queue" id="queue"></div>
+    <div id="playPanel" class="panel">
+      <div class="card" id="orderCard">
+        <h2><span class="n">1</span>El pedido<span class="aside" id="orderShirts"></span></h2>
+        <div class="sizes" id="sizes"></div>
+        <p class="meta" id="orderMeta"></p>
       </div>
-      <div class="card">
-        <div class="stats">
-          <div class="stat"><div class="k">Piezas</div><div class="v" id="sPieces">0</div></div>
-          <div class="stat"><div class="k">Tiempo</div><div class="v" id="sTime">1:30</div></div>
-          <div class="stat"><div class="k">Rollo usado</div><div class="v" id="sLen">0<small>cm</small></div></div>
-          <div class="stat"><div class="k">Desperdicio</div><div class="v" id="sWaste">–</div></div>
-        </div>
+      <div class="flow" aria-hidden="true">cada playera se desarma en <i>6 piezas</i></div>
+      <div class="card" id="piecesCard">
+        <h2><span class="n">2</span>Las piezas<span class="aside">elige una</span></h2>
+        <div class="queue" id="queue"></div>
       </div>
       <div class="btns">
         <button class="btn" id="bRotate">Girar 180°</button>
@@ -212,29 +335,24 @@
         <button class="btn wide" id="bShelf">Completar por estantes (como hoy)</button>
         <button class="btn primary wide" id="bFinish" hidden>TelaTetris empieza en 3…</button>
       </div>
-      <p class="hint">Tienes 1:30 desde que mueves la primera pieza. Al colocar la última pieza (o al acabarse el tiempo), TelaTetris toma tu tendido y lo reacomoda. Las piezas mantienen el hilo: solo giran 0° o 180°. Entre piezas queda 1 cm de separación de corte.</p>
     </div>
 
-    <div id="solvePanel" class="side" hidden>
+    <div id="solvePanel" class="panel" hidden>
       <div class="card">
-        <h2>TelaTetris reacomoda tus piezas</h2>
+        <h2><span class="n">4</span>TelaTetris reacomoda</h2>
         <div class="progress"><i id="solveBar"></i></div>
-        <p class="solve-line">Órdenes probados: <b id="solveIters">0</b></p>
-        <p class="solve-line">Tu tendido: <b id="solveHuman">–</b></p>
-        <p class="solve-line">TelaTetris: <b id="solveBest">–</b></p>
+        <p class="solve-line">Órdenes probados <b id="solveIters">0</b></p>
+        <p class="solve-line">Tu tendido <b id="solveHuman">–</b></p>
+        <p class="solve-line tt">TelaTetris <b id="solveBest">–</b></p>
       </div>
       <p class="foot">Cada pieza se desliza sobre el rollo y se mide cuánto encaja con lo que ya está puesto (correlación cruzada normalizada). Gana la posición más ajustada sin traslape.</p>
     </div>
 
-    <div id="resultPanel" class="side" hidden>
+    <div id="resultPanel" class="panel" hidden>
       <div class="card saved" id="savedCard"></div>
       <div class="card">
-        <h2>Comparación</h2>
+        <h2><span class="n">5</span>Comparación</h2>
         <table class="cmp" id="cmpTable"></table>
-      </div>
-      <div class="card">
-        <h2>Validador</h2>
-        <div class="checks" id="checks"></div>
       </div>
       <div class="btns">
         <button class="btn primary wide" id="bAgain">Jugar otra vez</button>
@@ -242,10 +360,40 @@
       <p class="foot">Método: Meng et al., 2025, <i>Scientific Reports</i>, doi:10.1038/s41598-025-97202-0, con búsqueda del orden de piezas.</p>
     </div>
   </aside>
-</main>
 
-<script src="../../arrange/arrange.js"></script>
-<script src="garments.js"></script>
-<script src="game.js"></script>
+  <section class="stage">
+    <div class="stage-head">
+      <div class="ttl">
+        <h1 id="stageTitle">Tu turno: acomoda el pedido</h1>
+        <p id="stageSub">Gana el tendido que use menos rollo. El reloj corre desde tu primer movimiento.</p>
+      </div>
+      <div class="hud">
+        <div class="stat time"><div class="k">Tiempo</div><div class="v" id="sTime">1:30</div></div>
+        <div class="stat"><div class="k">Piezas</div><div class="v" id="sPieces">0</div></div>
+        <div class="stat"><div class="k">Rollo</div><div class="v" id="sLen">0<small>cm</small></div></div>
+        <div class="stat"><div class="k">Desperdicio</div><div class="v" id="sWaste">–</div></div>
+      </div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="board"></canvas>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+    <div class="keys" id="keys">
+      <span><kbd>Clic</kbd>colocar</span>
+      <span><kbd>Espacio</kbd>deslizar</span>
+      <span><kbd>R</kbd>girar 180°</span>
+      <span><kbd>←↑↓→</kbd>mover 1 cm (<kbd>Shift</kbd>5)</span>
+      <span><kbd>C</kbd>siguiente</span>
+      <span><kbd>Z</kbd>deshacer</span>
+    </div>
+  </section>
+</main>
+</div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<!-- Bump ?v= when the scripts change, so a cached old script never runs with this page. -->
+<script src="../../arrange/arrange.js?v=3"></script>
+<script src="garments.js?v=3"></script>
+<script src="game.js?v=3"></script>
 </body>
 </html>

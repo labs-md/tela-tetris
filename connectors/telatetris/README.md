@@ -1,15 +1,16 @@
 # TelaTetris: the demo
 
-Open `index.html` in a browser. There's no build step and no server, and it works offline (if Google Fonts can't load, the page falls back to system fonts).
+Open `index.html` in a browser. There's no build step or server. The game works offline, including its bundled Press Start 2P and IBM Plex Mono fonts.
 
 TelaTetris is the name and brand of the demo. Underneath, it is a connector for the [Arrange engine](../../README.md), and the game's opponent, called TelaTetris on screen, is the engine. The domain is T-shirt pieces on a fabric roll, in cm, on 1 cm cells, with rotations limited to 0° and 180° so the grain line stays along the roll.
 
 ## How a round goes
 
+0. **Intro (about 7 s).** The order card's T-shirt rises onto the stage, comes apart into its six pieces, and the pieces fly into the piece bank, whose tiles pop in as they land. Then "¿LISTOS? ¡YA!" and the round begins. Any click or Space, Enter, or Escape skips it. Add `?intro=0` to the URL to skip it entirely; the "¿Cómo?" button replays it before a round starts.
 1. **Your turn (1:30).** Pieces arrive in a queue. Place them on a 150 cm roll. The cut line and the waste update live. The clock starts on the first interaction. It turns orange at 15 s, and a warning appears at 10 s. When time runs out, the remaining pieces are laid out in shelves after your cut line, so the comparison always covers the full order, and "¡Se acabó el tiempo!" shows before TelaTetris's turn.
 2. **Your result.** When the last piece is placed, your roll length shows for 3.5 s. The algorithm searches in the background meanwhile. Undo (or clicking a piece) cancels this and returns you to your turn. The button or Enter skips the countdown.
 3. **TelaTetris's turn.** Your own pieces fly one by one, on the same roll, to where the algorithm puts them.
-4. **Result.** Roll saved (the gap between your cut line and TelaTetris's), fabric use compared with the shelf baseline, and the validator.
+4. **Result.** Roll saved, measured between your cut line and TelaTetris's, and fabric use compared with the shelf baseline. Both layouts are validated internally.
 
 ## Controls
 
@@ -22,6 +23,8 @@ TelaTetris is the name and brand of the demo. Underneath, it is a connector for 
 | Next piece | click a queue tile | C |
 | Pick up a placed piece | click it | n/a |
 | Undo | button | Z / Backspace |
+| Sound on / off | header button | M |
+| Replay the intro | ¿Cómo? | H |
 
 "Completar por estantes" lays out every remaining piece in shelves, which is how small factories often do it by hand. Use it when there's no time for a juror to place every piece.
 
@@ -30,13 +33,14 @@ TelaTetris is the name and brand of the demo. Underneath, it is a connector for 
 - `garments.js` turns the order on screen into a protocol request (`Garments.request(counts)`). Each piece is an item keyed `<piece>-<size>-<garment>`, with its name and color in `data`.
 - `game.js` opens `Arrange.session(request)` when the order changes. While you play, it uses `session.problem` for live checks: does the piece fit here, where does Space slide it, lay the rest out by shelves.
 - During the 3.5 s review it calls `session.step(20)` between frames, then `session.result()` for the engine's layout.
-- Your layout is scored with `session.evaluate(...)`, by the same rules and in the same response format as the engine's. The results table and the three checks come straight from those two responses.
+- Your layout is scored with `session.evaluate(...)`, by the same rules and in the same response format as the engine's. Both responses still check bounds, overlaps, grain direction, and completeness. The results screen shows the comparison without a validator panel.
 
 ## Files
 
 - `garments.js`: the connector proper. Piece outlines, sizes, and `request(counts)`, which turns an order into a protocol request.
-- `game.js`: game state, input, canvas drawing.
+- `game.js`: game state, input, canvas drawing, the intro, and the sound effects.
 - `index.html`: layout and styles. Loads `../../arrange/arrange.js`, then `garments.js`, then `game.js`.
+- `fonts/`: self-hosted retro fonts and their license files. Colors follow labs.gt: yellow, orange, black, white, and warm grays.
 
 ## Things you can tune
 
