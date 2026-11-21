@@ -192,7 +192,7 @@ A full-screen title card on warm black with the Labs dot grid: the pixel shirt a
 
 Between the start screen and the intro, a full-screen cutscene in the style of a top-down adventure game, original art only. Scenes are drawn at 192×108 and scaled up without smoothing, in the Labs palette plus a skin tone and a brown for wood: Chepe's workshop (an order card with shirt icons pops up as a letter flies in), the town map (a path from the orange-roofed TALLER to the yellow-roofed TELAS shop, round yellow trees, a shirt "inventory" in the corner, Chepe walking), and the fabric shop (shelves of rolls, a 150 cm roll on the counter, Doña Rosa behind it). When she asks how many yards, Chepe shakes and question marks in yellow, orange and white bob over his head.
 
-Dialogue sits in a classic RPG box: black, white border, yellow outer ring, a yellow name tag for the speaker (none for the narrator, whose text is gray), pixel text typed at about 30 characters per second with soft blips, and a blinking ▼ when the line is complete. The player advances every line. A "Saltar historia" tool button, Esc or Start skips it.
+Dialogue sits in a classic RPG box: black, white border, yellow outer ring, a yellow name tag for the speaker (none for the narrator, whose text is gray), pixel text typed at about 30 characters per second with soft blips, and a blinking ▼ when the line is complete. The player advances every line. Two beveled buttons sit at the top right for pitches: "Saltar historia" (Esc or Start) goes on to the intro, and the yellow primary "Ir al juego ▸▸" (J or Select) jumps straight into the round with a short "¡YA!".
 
 ### Intro
 
