@@ -33,7 +33,7 @@ function memoryStore() {
 
 function receipt(body, status = 'accepted') {
   const batch = JSON.parse(body);
-  return JSON.stringify({ contract_version: 2, batch_id: batch.batch_id, queue_id: batch.queue_id,
+  return JSON.stringify({ receipt_id: '01a20466-a5a8-7098-aac8-1122dafca32a', batch_id: batch.batch_id,
     received_at: '2026-11-21T19:31:00.000Z', outcomes: batch.events.map((event) => ({ event_id: event.event_id, sequence: event.sequence, status })) });
 }
 
@@ -53,7 +53,7 @@ test('isolated browser fixture exposes the client without starting the real send
 });
 
 test('the browser session token is used without embedding it into the sender queue', () => {
-  const values = new Map([['telatetris-instabloom-session-token', 'synthetic-session-token']]);
+  const values = new Map([['telatetris-instabloom-post-session-token', 'synthetic-session-token']]);
   const window = {
     document: { currentScript: { hasAttribute: () => true } },
     sessionStorage: { getItem: (key) => values.get(key) ?? null },
@@ -237,6 +237,26 @@ test('non-durable validation output cannot acknowledge delivery even with matchi
   await c.sender.flush();
   assert.equal((await c.sender.status()).records[0].status, 'pending');
   assert.equal((await c.sender.status()).records[0].last_error, 'INVALID_RECEIPT');
+});
+
+test('a receipt needs its own identity and the original event and sequence', async () => {
+  for (const invalidate of [
+    (value) => { delete value.receipt_id; },
+    (value) => { value.outcomes[0].event_id = uuidv7(); },
+    (value) => { value.outcomes[0].sequence = '2'; },
+  ]) {
+    const c = setup(async (url, options) => {
+      const value = JSON.parse(receipt(options.body));
+      invalidate(value);
+      return Response.json(value);
+    });
+    await capture(c);
+    c.credential.value = 'synthetic';
+    await c.sender.flush();
+    const record = (await c.sender.status()).records[0];
+    assert.equal(record.status, 'pending');
+    assert.equal(record.last_error, 'INVALID_RECEIPT');
+  }
 });
 
 test('synthetic validation uses independent identities and never opens, resets or advances the delivery queue', async () => {

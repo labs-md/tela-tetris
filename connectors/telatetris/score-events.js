@@ -2,11 +2,11 @@
 (function (root) {
   'use strict';
 
-  const INGESTION_TOKEN = 'ib_ing_1.01a1ffa9-f180-7644-914d-b105970733bd.Ol5BxRasxjS0CWQst3latpRWNX13ECebFt0T_l1ClDI'; // Paste this instance's ingestion token here.
-  const CONNECTION = 'https://stg-capture.lid.gt/ingest/v2/workspaces/01a1ff84-784e-75bc-9fa9-6284885c72bc/campaigns/01a1ff84-cba6-7425-a611-df6983cbbdf7/connections/01a1ff88-2df5-74dc-857e-fbb99d724099';
-  const SCHEMA = '01a1ff86-6346-7691-95f6-ca500215545f';
-  const PREFIX = 'telatetris-score-v1:';
-  const TOKEN_KEY = 'telatetris-instabloom-session-token';
+  const INGESTION_TOKEN = 'ib_ing_1.01a20460-16b9-7184-9097-8d4bd4af2104.0QcQNhOpulrQtrmuJ4pfMhxwMAKiXPbmJUUwtRU0RqY'; // Expires 2026-11-23 at 17:48 UTC.
+  const CONNECTION = 'https://stg-capture.lid.gt/ingest/v2/workspaces/01a1ff84-784e-75bc-9fa9-6284885c72bc/campaigns/01a2045e-05f0-712b-91f6-e8860a376163/connections/01a2045f-a3ea-7022-8e76-4e0dcba7d735';
+  const SCHEMA = '01a2045f-1767-7204-9261-3cf0114a87c7';
+  const PREFIX = 'telatetris-score-post:';
+  const TOKEN_KEY = 'telatetris-instabloom-post-session-token';
 
   function sessionToken() {
     try { return root.sessionStorage.getItem(TOKEN_KEY) || INGESTION_TOKEN; }
@@ -27,7 +27,7 @@
     return { version: 2, connection: CONNECTION, schema: SCHEMA, queue_id: uuid(), next_sequence: '1', records: [] };
   }
 
-  function indexedStore(indexedDB, name = 'telatetris-instabloom-v2') {
+  function indexedStore(indexedDB, name = 'telatetris-instabloom-post-v2') {
     let database;
     const open = () => {
       if (!database) database = new Promise((resolve, reject) => {
@@ -70,7 +70,8 @@
 
   function receiptStatus(text, item) {
     const receipt = JSON.parse(text), batch = JSON.parse(item.body), event = batch.events[0];
-    if (receipt.durable === false || receipt.batch_id !== batch.batch_id || receipt.queue_id !== batch.queue_id ||
+    if (receipt.durable === false || receipt.batch_id !== batch.batch_id ||
+        typeof receipt.receipt_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(receipt.receipt_id) ||
         typeof receipt.received_at !== 'string' || !Number.isFinite(Date.parse(receipt.received_at)) ||
         !Array.isArray(receipt.outcomes) || receipt.outcomes.length !== 1) throw new Error('INVALID_RECEIPT');
     const outcome = receipt.outcomes[0];

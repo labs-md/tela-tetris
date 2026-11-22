@@ -15,7 +15,7 @@ function copy(source, destination = source) {
   fs.copyFileSync(path.join(root, source), target);
 }
 
-// Explicit runtime assets only: no credentials, deployment receipts or vendor source.
+// Explicit runtime assets only, including this demo's short-lived ingestion token.
 for (const file of ['index.html', 'game.js', 'garments.js', 'score-events.js', 'score-setup.js', 'connect.html']) {
   copy('connectors/telatetris/' + file, file);
 }
@@ -41,12 +41,6 @@ function rewrite(file, from, to) {
 
 rewrite('index.html', '../../arrange/arrange.js', 'arrange/arrange.js');
 rewrite('game.js', '../planner/index.html', 'planner/index.html');
-// Public demos keep ingestion credentials in the tab's session via connect.html.
-const scores = path.join(output, 'score-events.js');
-const scoreSource = fs.readFileSync(scores, 'utf8');
-const tokenPattern = /const INGESTION_TOKEN = '[^']*';/;
-if (!tokenPattern.test(scoreSource)) throw new Error('Score token declaration changed; review the public bundle.');
-fs.writeFileSync(scores, scoreSource.replace(tokenPattern, "const INGESTION_TOKEN = '';"));
 
 // Cache versions describe the shipped bytes, including public-demo rewrites.
 for (const file of ['index.html', 'connect.html']) {
@@ -56,4 +50,4 @@ for (const file of ['index.html', 'connect.html']) {
     return 'src="' + asset + '?v=' + hash + '"';
   }));
 }
-console.log('Built unified pitch demo at dist/demo: game → planner, with session-only score credentials.');
+console.log('Built unified pitch demo at dist/demo: game → planner, with embedded short-lived score credentials.');

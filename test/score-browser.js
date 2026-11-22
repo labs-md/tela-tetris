@@ -18,7 +18,7 @@
       if (!url.endsWith('/batches')) throw new Error('Unexpected request');
       posts.push(options.body);
       const batch = JSON.parse(options.body);
-      return Response.json({ contract_version: 2, batch_id: batch.batch_id, queue_id: batch.queue_id,
+      return Response.json({ receipt_id: uuidv7(), batch_id: batch.batch_id,
         received_at: new Date().toISOString(), outcomes: [{ event_id: batch.events[0].event_id, sequence: batch.first_sequence, status: 'accepted' }] });
     } });
     if (!saved) {
